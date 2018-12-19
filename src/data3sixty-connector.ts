@@ -20,9 +20,9 @@ export class Data3SixtyConnector extends Connector {
           apiKey: $
         }
       }], () => {
-        throw `You're missing an API key.
+        throw(`You're missing an API key.
         You can find this {Data3SixtyInstance}/resource/my/apikey
-        `
+        `)
       }, (apiKey: string) => !Boolean(apiKey)),
 
       tailored.clause([{
@@ -30,43 +30,17 @@ export class Data3SixtyConnector extends Connector {
           apiSecret: $
         }
       }], () => {
-        throw `You're missing an API Secret.
-        You can find this {Data3SixtyInstance}/resource/my/apikey
-          `
+        throw(`You're missing an API Secret.
+          You can find this {Data3SixtyInstance}/resource/my/apikey
+          `)
       }, (apiSecret: string) => !Boolean(apiSecret)),
 
       tailored.clause([{
         Data3SixtyConnector: {
-          apiKey: $,
-          apiSecret: $,
           fusionAttributeUid: ""
         }
-      }], (apiKey: string, apiSecret: string) => {
-        this.apiKey = apiKey;
-        this.apiSecret = apiSecret;
-
-        axios.get(`${this.data3SixtyUrl}/api/v2/assets/types`, {
-          method: "GET",
-          headers: {
-            "Authorization": `${this.apiKey};${this.apiSecret}`
-          }
-        }).then((response) => {
-          let assignFusisonAttributeUid = tailored.defmatch(
-            tailored.clause([{ 
-              uid: $, 
-              Class: {
-                Name: "Fusion Attribute"
-              }
-            }], (fusionAttributeUid: string) => { 
-              // TODO: Handle the case where there are multiple fusionAttributeUIDs 
-              this.fusionAttributeUid = fusionAttributeUid;
-            }),
-
-            tailored.clause([_], () => { return })
-          );
-
-          response.data.forEach((data: any) => assignFusisonAttributeUid(data))
-        })
+      }], (fusionAttributeUid: string) => {
+        throw ("You're missing the fusionAttributeUid");
       }),
 
       tailored.clause([{
@@ -82,7 +56,7 @@ export class Data3SixtyConnector extends Connector {
       }),
 
     )(this.configuration.connectorOptions);
-  }
+  };
 
   /*
    * Before getting assets from the source (typically 
@@ -93,29 +67,22 @@ export class Data3SixtyConnector extends Connector {
     return new Promise((resolve: any, reject: any) => {
       resolve(null);
     });
-  }
+  };
 
   /*
    * Get assets from a source. These assets might be Technology Assets
    * from Data3Sixty or getting a variety of assets for joining from 
    * another system.
    */
-  retrieveAssets(): Promise<any>  {
-    axios.request({
+  retrieveAssets(): Promise<any> {
+    return axios.request({
+      url: `${this.data3SixtyUrl}/api/v2/assets/${this.fusionAttributeUid}`,
       method: "GET",
       headers: {
         "Authorization": `${this.apiKey};${this.apiSecret}`
       }
-    }).then((response) => {
-      console.log(response);
     })
-
-    // Make the request 
-    // Download assets
-    // Return a promise that resolves to have the assets
-    return new Promise((resolve: any, reject: any) => {
-    });
-  }
+  };
 
   /*
    * After getting the assets do whatever clean-up you would like. 
@@ -123,10 +90,12 @@ export class Data3SixtyConnector extends Connector {
    * to a system.
    */
   postRetrieveAssets(): Promise<any> {
+    // WARNING: For the production version of this we will need to not 
+    // do things in memory.
     return new Promise((resolve: any, reject: any) => {
       resolve(null);
     });
-  }
+  };
 
   /*
    * Before sending the Data Quality Rules do whatever clean-up you
@@ -160,4 +129,4 @@ export class Data3SixtyConnector extends Connector {
       resolve(null);
     });
   }
-}
+};

@@ -14,7 +14,11 @@ registerSuite("Data3SixtyConnector tests", {
     },
 
     "Data3SixtyConnector can retreieve technology assets"() {
-      assert.equal(false, true);
+      let connector = new Data3SixtyConnector();
+
+      connector.retrieveAssets().then((response) => {
+        assert.equal(Boolean(response.data), true, "A response is present");
+      });
     },
 
     "Data3SixtyConnector can post data quality results"() {

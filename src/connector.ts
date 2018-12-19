@@ -20,8 +20,7 @@ export default abstract class Connector {
   data3SixtyUrl?: string;
 
   constructor() {
-    // TODO: Once the project is done there will need to be some thought on where this should be
-    // put.
+    // TODO: Once the project is done there will need to be some thought on where this should be.
     const connectorConfig = fs.readFileSync(path.resolve(__dirname, "../connector-config.json"), "utf8");
     this.configuration = JSON.parse(connectorConfig);
 
