@@ -1,0 +1,16 @@
+{
+  "compileOptions": {
+    "target": "es5",
+    "removeComments": true,
+    "lib": ["es2015", "es5"],
+    "skipLibCheck": true,
+    "sourceMap": true,
+    "module": "commonjs",
+    "types": ["intern"],
+    "typeRoots": ["../node_modules/@types"],
+    "esModuleInterop": true
+  },
+  "include": [
+      "unit/**/*.ts"
+  ]
+}

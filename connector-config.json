@@ -1,0 +1,12 @@
+{
+  "connectorOptions": {
+    "data3SixtyUrl": "https://experian.preview.data3sixty.com",
+    "pollFrequency": 6000,
+    "Data3SixtyConnector": {
+      "apiKey": "LNV2z3c8HDvd+IJ9Bjz+V8fQ5",
+      "apiSecret": "VsqzhrKNvNEfPOHUSIOuOeUkq4mDw-F0dfMeNWsQl+hZKuOGee",
+      "fusionAttributeUid": "",
+      "src": "src/data3sixty-connector.js"
+    }
+  }
+}

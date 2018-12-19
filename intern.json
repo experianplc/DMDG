@@ -1,0 +1,15 @@
+{
+  "suites": "tests/unit/**/*.js",
+  "filterErrorStack": true,
+
+  "capabilities": {
+    "acceptInsecureCerts": true
+  },
+
+  "environments": [
+    { "browserName": "node" }
+  ],
+
+  "plugins": ["tests/reporters/nunit3.js"]
+}
+

@@ -1,0 +1,4 @@
+nunit3.xml
+*.js
+test.html
+node_modules

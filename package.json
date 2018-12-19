@@ -1,0 +1,18 @@
+{
+  "name": "aperture-dq-connector",
+  "version": "0.0.1",
+  "description": "A connector that sends Pandora and Aperture Data Studio rules to a governance platform of choice",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Tabeth Nkangoh",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^10.12.15",
+    "axios": "^0.18.0",
+    "bluebird": "^3.5.3",
+    "intern": "^4.3.3",
+    "tailored": "^2.7.5"
+  }
+}
