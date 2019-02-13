@@ -17,6 +17,6 @@ declare module 'tailored'  {
 
   function wildcard(): Wildcard;
   function variable(name?: string, default_value?: any): Variable;
-  function defmatch(...clauses: any[]): ((args: any[]) => any)
+  function defmatch(...clauses: any[]): ((args: any) => any)
   function clause(pattern: any, fn: Function, guard?: Function): Clause
 }

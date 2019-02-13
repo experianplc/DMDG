@@ -9,9 +9,11 @@
   "author": "Tabeth Nkangoh",
   "license": "ISC",
   "devDependencies": {
+    "@types/bluebird": "^3.5.25",
     "@types/node": "^10.12.15",
     "axios": "^0.18.0",
     "bluebird": "^3.5.3",
+    "immer": "^1.9.3",
     "intern": "^4.3.3",
     "tailored": "^2.7.5"
   }

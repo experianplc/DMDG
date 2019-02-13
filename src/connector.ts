@@ -1,15 +1,15 @@
-import fs from "fs";
-import tailored from "tailored";
-import path from "path";
+import * as fs from "fs";
+import * as tailored from "tailored";
+import * as path from "path";
 
 /* 
- * The Connector is a class that wil limplement the logic needed to do the following four things:
- * - Retrieve any necessary assets from the [source], defined as the Governance Center's needed
- *   assets
- * - Do any processing after retrival via sourceCallback
- * - Post Pandora/Aperture data quality rules to [target], defined as the Governance Center's
+ * The Connector is a class that will implement the logic needed to do the following four things:
+ * - (1) Retrieve any necessary assets from the [source], defined as the Governance Center's needed
+ *   assets. 
+ * - (2) Do any processing after retrival via sourceCallback
+ * - (3) Post Pandora/Aperture data quality rules to [target], defined as the Governance Center's
  *   location for where Pandora Data Quality Rules should be stored
- * - Do any processing after posting of data quality rules
+ * - (4) Do any processing after posting of data quality rules. For example, sending notifications
  */
 
 const $ = tailored.variable();
@@ -55,34 +55,34 @@ export default abstract class Connector {
    * a data governance center) do whatever clean-up you would like.
    * This might be checking authentication, for example.
    */
-  abstract preRetrieveAssets(): Promise<any> 
+  abstract preRetrieveAssets(): PromiseLike<any> 
 
   /*
    * Get assets from a source. These assets might be Technology Assets
    * from Data3Sixty or getting a variety of assets for joining from 
    * another system.
    */
-  abstract retrieveAssets(): Promise<any> 
+  abstract retrieveAssets(): PromiseLike<any> 
 
   /*
    * After getting the assets do whatever clean-up you would like. 
    * This might be sending an email or another type of notification
    * to a system.
    */
-  abstract postRetrieveAssets(): Promise<any> 
+  abstract postRetrieveAssets(...data: any[]): any
 
   /*
    * Before sending the Data Quality Rules do whatever clean-up you
    * would like. This might be checking to see if data quality rules exist
    * before retrieval.
    */
-  abstract preSendDataQualityRules(): Promise<any> 
+  abstract preSendDataQualityRules(): PromiseLike<any> 
 
   /*
    * Send data quality rules to the system. The rules that are chosen to 
    * be sent will depend on the configuration options you have selected. 
    */
-  abstract sendDataQualityRules(): Promise<any> 
+  abstract sendDataQualityRules(): PromiseLike<any> 
 
   /*
    *
@@ -90,5 +90,5 @@ export default abstract class Connector {
    * you would like. This might be sending an email or another 
    * type of notification to a system.
    */
-  abstract postSendDataQualityRules(): Promise<any> 
+  abstract postSendDataQualityRules(...data: any[]): PromiseLike<any> 
 }
