@@ -155,7 +155,9 @@ export class Data3SixtyConnector extends Connector {
    * This might be checking authentication, for example.
    */
   preRetrieveAssets(): PromiseLike<any> {
+    console.log("In preRetrieveAssets");
     return new Promise((resolve: any, reject: any) => {
+      console.log("Ending preRetrieveAssets");
       resolve(null);
     });
   };
@@ -166,15 +168,26 @@ export class Data3SixtyConnector extends Connector {
    * another system.
    */
   retrieveAssets(): PromiseLike<any> {
+    console.log("In retrieveAssets");
 
     return this.preRetrieveAssets().then(() => {
-      return axios.request({
-        url: `${this.data3SixtyUrl}/api/v2/assets/${this.fusionAttributeUid}`,
-        method: "GET",
-        headers: {
-          "Authorization": `${this.apiKey};${this.apiSecret}`
-        },
-        transformResponse: this.postRetrieveAssets.bind(this)
+      return new Promise((resolve: any, reject: any) => {
+        axios.request({
+          url: `${this.data3SixtyUrl}/api/v2/assets/${this.fusionAttributeUid}`,
+          method: "GET",
+          headers: {
+            "Authorization": `${this.apiKey};${this.apiSecret}`
+          },
+        })
+          .then((data) => {
+            console.log("Ending retrieveAssets");
+            resolve(data);
+            this.postRetrieveAssets(data.data);
+
+          })
+          .catch((error) => {
+            reject(error);
+          })
       });
     });
   };
@@ -184,7 +197,7 @@ export class Data3SixtyConnector extends Connector {
    * This might be sending an email or another type of notification
    * to a system.
    */
-  postRetrieveAssets(data: string): any {
+  postRetrieveAssets(data: any): PromiseLike<any>{
     /*
      * For now we will just store everything in memory, but as the amount of
      * items we expect 'data' above to store increases we will need to eventually
@@ -194,85 +207,91 @@ export class Data3SixtyConnector extends Connector {
      * the storage and/or remove unused keys for the purposes of efficency.
      */
 
-    tailored.defmatch(
-      tailored.clause([{
-        items: $
-      }], (items: TechnologyAsset[]) => {
-        items.forEach((item: TechnologyAsset) => {
-          if (!this.assetMetaDataToTechnologyAssetUuid) {
-            throw "Asset Metdata map not defined";
-          }
+    console.log("In postRetrieveAssets");
+    return new Promise((resolve: any, reject: any) => {
+      tailored.defmatch(
+        tailored.clause([{
+          items: $
+        }], (items: TechnologyAsset[]) => {
+          items.forEach((item: TechnologyAsset) => {
+            if (!this.assetMetaDataToTechnologyAssetUuid) {
+              throw "Asset Metdata map not defined";
+            }
 
-          let normalizedProperties = this._normalizeJsonString(item.NormalizedAssetProperties)
+            let normalizedProperties = this._normalizeJsonString(item.NormalizedAssetProperties)
 
-          /*
-           * Example final structure
-           * (Instance) AdventureWorks: {
-           *    (Schema) Sales: {
-           *        (Table) SpecialOffer: {
-           *            (Column) MinQty: (Uuid) 8c9e21f3-8613-4b00-a78b-8105e31c331f
-           *        }
-           *    }
-           * }
-           */
+            /*
+             * Example final structure
+             * (Instance) AdventureWorks: {
+             *    (Schema) Sales: {
+             *        (Table) SpecialOffer: {
+             *            (Column) MinQty: (Uuid) 8c9e21f3-8613-4b00-a78b-8105e31c331f
+             *        }
+             *    }
+             * }
+             */
 
-          // Build the tree structure (bottom up)
+            // Build the tree structure (bottom up)
 
-          const Column   = normalizedProperties.Column;
-          const Table    = normalizedProperties.Table;
-          const Schema   = normalizedProperties.Schema;
-          const Instance = normalizedProperties.Instance;
+            const Column   = normalizedProperties.Column;
+            const Table    = normalizedProperties.Table;
+            const Schema   = normalizedProperties.Schema;
+            const Instance = normalizedProperties.Instance;
 
-          /*
-           * (Column) MinQty: (Uuid) 8c9e21f3-8613-4b00-a78b-8105e31c331f
-           */
+            /*
+             * (Column) MinQty: (Uuid) 8c9e21f3-8613-4b00-a78b-8105e31c331f
+             */
 
-          let ColumnUuid: { [key: string]: string }; 
-          try {
-            ColumnUuid = this.assetMetaDataToTechnologyAssetUuid[Instance][Schema][Table] || {};
-          } catch(e) {
-            ColumnUuid = {};
-          }
+            let ColumnUuid: { [key: string]: string }; 
+            try {
+              ColumnUuid = this.assetMetaDataToTechnologyAssetUuid[Instance][Schema][Table] || {};
+            } catch(e) {
+              ColumnUuid = {};
+            }
 
-          ColumnUuid[Column] = item.AssetUid;
+            ColumnUuid[Column] = item.AssetUid;
 
-          /*
-           * (Table) SpecialOffer: *ColumnUuid*
-           */
-          let TableColumn: { [key: string]: { [key: string]: string } };
-          try {
-            TableColumn = this.assetMetaDataToTechnologyAssetUuid[Instance][Schema] || {};
-          } catch(e) {
-            TableColumn = {};
-          }
+            /*
+             * (Table) SpecialOffer: *ColumnUuid*
+             */
+            let TableColumn: { [key: string]: { [key: string]: string } };
+            try {
+              TableColumn = this.assetMetaDataToTechnologyAssetUuid[Instance][Schema] || {};
+            } catch(e) {
+              TableColumn = {};
+            }
 
-          TableColumn[Table] = ColumnUuid;
+            TableColumn[Table] = ColumnUuid;
 
-          /*
-           * (Schema) Sales: *TableColumn*
-           */
-          let SchemaTable: { [key: string]: { [key: string]: { [key: string]: string } } };
-          try {
-            SchemaTable = this.assetMetaDataToTechnologyAssetUuid[Instance] || {};
-          } catch(e) {
-            SchemaTable = {};
-          }
+            /*
+             * (Schema) Sales: *TableColumn*
+             */
+            let SchemaTable: { [key: string]: { [key: string]: { [key: string]: string } } };
+            try {
+              SchemaTable = this.assetMetaDataToTechnologyAssetUuid[Instance] || {};
+            } catch(e) {
+              SchemaTable = {};
+            }
 
-          SchemaTable[Schema] = TableColumn;
+            SchemaTable[Schema] = TableColumn;
 
-          /*
-           * (Instance) AdventureWorks: *SchemaTable*
-           */ 
-          this.assetMetaDataToTechnologyAssetUuid[Instance] =
-            SchemaTable;
+            /*
+             * (Instance) AdventureWorks: *SchemaTable*
+             */ 
+            this.assetMetaDataToTechnologyAssetUuid[Instance] =
+              SchemaTable;
+
+          })
+          console.log("Ending postRetrieveAssets");
+          resolve();
+        }),
+        tailored.clause([_], () => {
+          // We want to throw an error if there are no actual
+          // TechnologyAssets to query against. 
+          reject("Items were not found in response");
         })
-      }),
-      tailored.clause([_], () => {
-        // We want to throw an error if there are no actual
-        // TechnologyAssets to query against. 
-        throw "Items were not found in response";
-      })
-    )(JSON.parse(data));
+      )(data);
+    })
   };
 
   /*
@@ -291,8 +310,24 @@ export class Data3SixtyConnector extends Connector {
    * be sent will depend on the configuration options you have selected. 
    */
   sendDataQualityRules(): PromiseLike<any>  {
-    return new Promise((resolve: any, reject: any) => {
-      resolve(null);
+    return this.preSendDataQualityRules().then(() => {
+      return new Promise((resolve: any, reject: any) => {
+        axios.request({
+          url: `${this.data3SixtyUrl}/api/v2/assets/${this.fusionAttributeUid}`,
+          method: "GET",
+          headers: {
+            "Authorization": `${this.apiKey};${this.apiSecret}`
+          },
+        })
+          .then((data) => {
+            resolve(data);
+            this.postSendDataQualityRules();
+
+          })
+          .catch((error) => {
+            reject(error);
+          })
+      });
     });
   }
 
