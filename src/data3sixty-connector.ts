@@ -284,10 +284,10 @@ export class Data3SixtyConnector extends Connector {
 
             // Build the tree structure (bottom up)
 
-            const Column   = normalizedProperties.Column;
-            const Table    = normalizedProperties.Table;
-            const Schema   = normalizedProperties.Schema;
-            const Instance = normalizedProperties.Instance;
+            const Column   = normalizedProperties.Column.toLocaleLowerCase();
+            const Table    = normalizedProperties.Table.toLocaleLowerCase();
+            const Schema   = normalizedProperties.Schema.toLocaleLowerCase();
+            const Instance = normalizedProperties.Instance.toLocaleLowerCase();
 
             /*
              * (Column) MinQty: (Uuid) 8c9e21f3-8613-4b00-a78b-8105e31c331f
@@ -406,10 +406,10 @@ export class Data3SixtyConnector extends Connector {
           for (let i = 0; i < odbcData.data.length; i++) {
             const rule: PandoraRule = odbcData.data[i];
 
-            const database = rule["EXTERNAL DATABASE"];
-            const schema = rule["EXTERNAL SCHEMA"];
-            const table = rule["EXTERNAL TABLE NAME"];
-            const column = rule["EXTERNAL COLUMN NAME"];
+            const database = rule["EXTERNAL DATABASE"].toLocaleLowerCase();
+            const schema = rule["EXTERNAL SCHEMA"].toLocaleLowerCase();
+            const table = rule["EXTERNAL TABLE NAME"].toLocaleLowerCase();
+            const column = rule["EXTERNAL COLUMN NAME"].toLocaleLowerCase();
 
             let uid;
             try  {
@@ -420,9 +420,10 @@ export class Data3SixtyConnector extends Connector {
             }
 
             const ruleUid = rule.DESCRIPTION.match(/.*ruleUid=([^;]+)/)
+
             if (ruleUid) {
               axios.request({
-                url: `${this.url}/api/v2/dataquality/${ruleUid}`,
+                url: `${this.url}/api/v2/dataquality/${ruleUid[1]}`,
                 method: "POST",
                 headers: {
                   "Authorization": `${this.apiKey};${this.apiSecret}`
