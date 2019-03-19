@@ -9,6 +9,51 @@ const $ = tailored.variable();
 const _ = tailored.wildcard();
 
 
+interface PandoraRule {
+  "NAME": string;
+  "SCORE": string;
+  "MEASURE": string;
+  "PASSED MEASURE": string;
+  "FAILED MEASURE": string;
+  "RULE CATEGORY": string;
+  "DESCRIPTION": string;
+  "INCLUDED": string;
+  "FILTER": string;
+  "ROWS PASSED": string;
+  "ROWS FAILED": string;
+  "TABLE": string;
+  "TABLE VERSION": string;
+  "VERSIONS OFFSET": string;
+  "COLUMN": string;
+  "SCHEMA": string;
+  "FUNCTION": string;
+  "VERSION": string;
+  "PARAMETERS": string;
+  "TYPE": string;
+  "ROWS CONSIDERED": string;
+  "ROWS IGNORED": string;
+  "PASSED": string;
+  "FAILED": string;
+  "CONSIDERED": string;
+  "IGNORED": string;
+  "CATEGORY": string;
+  "TABLE CREATED": string;
+  "LAST VALIDATED": string;
+  "CONNECTION STRING": string;
+  "EXTERNAL COLUMN NAME": string;
+  "EXTERNAL DATABASE": string;
+  "EXTERNAL SCHEMA": string;
+  "EXTERNAL SERVER": string;
+  "EXTERNAL TABLE NAME": string;
+  "FAIL RANGE": string;
+  "FAILED SCORE": string;
+  "LATEST TABLE VERSION": string;
+  "PASS RANGE": string;
+  "RESULT": string;
+  "RULE CATEGORY ID": string;
+  "RULE THRESHOLD": string;
+}
+
 interface NormalizedAssetProperties {
   Instance: string; 
   Schema: string;
@@ -76,10 +121,23 @@ interface MetaDataMap {
 
 export class Data3SixtyConnector extends Connector {
 
+  // Environment location of data3sixty, e.g. yourname.data3sixty.com
+  url?: string;
+
+  // API key associated with environment, e.g. 123
   apiKey?: string;
+  
+  // Secret associated with API key, e.g. xyz 
   apiSecret?: string;
+  
+  // Fusion attribute UID, e.g. 123xyZ 
   fusionAttributeUid?: string;
 
+  // Date of the last run
+  lastRun: Date;
+
+  // Location to the HTTP ODBC API
+  odbcUrl: string
   /*
    * A mapping of the asset metadata, e.g. Schema Table Column to the Technology Asset UUID.
    * So for example:
@@ -95,58 +153,57 @@ export class Data3SixtyConnector extends Connector {
    * Object.keys(SchemaName), or to get the UUID you would say
    * SchemaName.DatabaseName.TableName.ColumName
    */
-  assetMetaDataToTechnologyAssetUuid?: MetaDataMap;
+  assetMetaDataToTechnologyAssetUuid: MetaDataMap;
 
   constructor() {
     super();
 
-    tailored.defmatch(
-      tailored.clause([{
-        Data3SixtyConnector: {
-          apiKey: $
-        }
-      }], () => {
-        throw(`You're missing an API key.
-        You can find this {Data3SixtyInstance}/resource/my/apikey
-        `)
-      }, (apiKey: string) => !Boolean(apiKey)),
+    const URL = process.env.DATA3SIXTY_URL;
+    if (!URL) {
+      throw "DATA3SIXTY_URL not found";
+    } else {
+      this.url = URL;
+    }
 
-      tailored.clause([{
-        Data3SixtyConnector: {
-          apiSecret: $
-        }
-      }], () => {
-        throw(`You're missing an API Secret.
-          You can find this {Data3SixtyInstance}/resource/my/apikey
-          `)
-      }, (apiSecret: string) => !Boolean(apiSecret)),
+    const API_KEY = process.env.DATA3SIXTY_API_KEY;
+    if (!API_KEY) {
+      throw "DATA3SIXTY_API_KEY not found"
+    } else {
+      this.apiKey = API_KEY;
+    }
 
-      tailored.clause([{
-        Data3SixtyConnector: {
-          fusionAttributeUid: ""
-        }
-      }], (fusionAttributeUid: string) => {
-        throw ("You're missing the fusionAttributeUid");
-      }),
+    const API_SECRET = process.env.DATA3SIXTY_API_SECRET;
+    if (!API_SECRET) {
+      throw "DATA3SIXTY_API_SECRET not found";
+    } else {
+      this.apiSecret = API_SECRET;
+    }
 
-      tailored.clause([{
-        Data3SixtyConnector: {
-          apiKey: $,
-          apiSecret: $,
-          fusionAttributeUid: $,
-        }
-      }], (apiKey: string, apiSecret: string, fusionAttributeUid: string) => {
-        this.apiKey = apiKey;
-        this.apiSecret = apiSecret;
-        this.fusionAttributeUid = fusionAttributeUid;
+    const FUSION_UID = process.env.DATA3SIXTY_FUSION_ATTRIBUTE_UID;
+    if (!FUSION_UID) {
+      throw "DATA3SIXTY_FUSION_ATTRIBUTE_UID not found";
+    } else {
+      this.fusionAttributeUid = FUSION_UID;
+    }
 
-        // Later this will actually read from Redis in real time, and so
-        // a brand new instantation of an object will be unnecssary, but for now
-        // we'll just make a brand new object each time.
-        this.assetMetaDataToTechnologyAssetUuid = {};
-      }),
+    const LAST_RUN = process.env.DATA3SIXTY_LAST_RUN;
+    if (!LAST_RUN) {
+      console.log("DATA3SIXTY_LAST_RUN not found")
+      console.log("Defaulting to 1900-01-01");
+      this.lastRun = new Date("1900-01-01");
+    } else {
+      this.lastRun = new Date(LAST_RUN);
+    }
 
-    )(this.configuration.connectorOptions);
+    const HTTP_ODBC_URL = process.env.HTTP_ODBC_URL;
+    if (!HTTP_ODBC_URL) {
+      throw("HTTP_ODBC_URL not found");
+    } else {
+      this.odbcUrl = HTTP_ODBC_URL;
+    }
+
+    this.assetMetaDataToTechnologyAssetUuid = {};
+
   };
 
   /*
@@ -155,9 +212,7 @@ export class Data3SixtyConnector extends Connector {
    * This might be checking authentication, for example.
    */
   preRetrieveAssets(): PromiseLike<any> {
-    console.log("In preRetrieveAssets");
     return new Promise((resolve: any, reject: any) => {
-      console.log("Ending preRetrieveAssets");
       resolve(null);
     });
   };
@@ -168,19 +223,16 @@ export class Data3SixtyConnector extends Connector {
    * another system.
    */
   retrieveAssets(): PromiseLike<any> {
-    console.log("In retrieveAssets");
-
     return this.preRetrieveAssets().then(() => {
       return new Promise((resolve: any, reject: any) => {
         axios.request({
-          url: `${this.data3SixtyUrl}/api/v2/assets/${this.fusionAttributeUid}`,
+          url: `${this.url}/api/v2/assets/${this.fusionAttributeUid}`,
           method: "GET",
           headers: {
             "Authorization": `${this.apiKey};${this.apiSecret}`
           },
         })
           .then((data) => {
-            console.log("Ending retrieveAssets");
             resolve(data);
             this.postRetrieveAssets(data.data);
 
@@ -197,7 +249,7 @@ export class Data3SixtyConnector extends Connector {
    * This might be sending an email or another type of notification
    * to a system.
    */
-  postRetrieveAssets(data: any): PromiseLike<any>{
+  postRetrieveAssets(data: any): PromiseLike<any> {
     /*
      * For now we will just store everything in memory, but as the amount of
      * items we expect 'data' above to store increases we will need to eventually
@@ -207,7 +259,6 @@ export class Data3SixtyConnector extends Connector {
      * the storage and/or remove unused keys for the purposes of efficency.
      */
 
-    console.log("In postRetrieveAssets");
     return new Promise((resolve: any, reject: any) => {
       tailored.defmatch(
         tailored.clause([{
@@ -282,7 +333,7 @@ export class Data3SixtyConnector extends Connector {
               SchemaTable;
 
           })
-          console.log("Ending postRetrieveAssets");
+          
           resolve();
         }),
         tailored.clause([_], () => {
@@ -299,7 +350,7 @@ export class Data3SixtyConnector extends Connector {
    * would like. This might be checking to see if data quality rules exist
    * before retrieval.
    */
-  preSendDataQualityRules(): PromiseLike<any>  {
+  preSendDataQualityRules(): PromiseLike<any> {
     return new Promise((resolve: any, reject: any) => {
       resolve(null);
     });
@@ -312,24 +363,103 @@ export class Data3SixtyConnector extends Connector {
   sendDataQualityRules(): PromiseLike<any>  {
     return this.preSendDataQualityRules().then(() => {
       return new Promise((resolve: any, reject: any) => {
-        axios.request({
-          url: `${this.data3SixtyUrl}/api/v2/assets/${this.fusionAttributeUid}`,
-          method: "GET",
-          headers: {
-            "Authorization": `${this.apiKey};${this.apiSecret}`
-          },
-        })
-          .then((data) => {
-            resolve(data);
-            this.postSendDataQualityRules();
+        let month = String(this.lastRun.getUTCMonth() + 1);
+        if (month.length === 1) {
+          month = "0" + month;
+        }
 
-          })
-          .catch((error) => {
-            reject(error);
-          })
+        let day = String(this.lastRun.getUTCDate());
+        if (day.length === 1) {
+          day = "0" + day;
+        }
+
+        let year = String(this.lastRun.getUTCFullYear());
+        if (year.length === 1) {
+          year = "0" + year;
+        }
+
+        let hours = String(this.lastRun.getUTCHours());
+        if (hours.length === 1) {
+          hours = "0" + hours;
+        }
+
+        let minutes = String(this.lastRun.getUTCMinutes());
+        if (minutes.length === 1){
+          minutes = "0" + minutes;
+        }
+
+        let milliseconds = String(this.lastRun.getUTCMilliseconds());
+        if (milliseconds.length === 1) {
+          milliseconds = "0" + milliseconds;
+        }
+
+        const safeDateTimeString = `${year}-${month}-${day} ${hours}:${minutes}:${milliseconds}`;
+
+        axios.request({
+          url: `http://${this.odbcUrl}/query`,
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          data: {
+            sql: `SELECT * FROM "RULES" WHERE "VERSIONS OFFSET" = 0 AND "LAST VALIDATED" > '${safeDateTimeString}'`
+          }
+        }).then((odbcData) => {
+          for (let i = 0; i < odbcData.data.length; i++) {
+            const rule: PandoraRule = odbcData.data[i];
+
+            const database = rule["EXTERNAL DATABASE"];
+            const schema = rule["EXTERNAL SCHEMA"];
+            const table = rule["EXTERNAL TABLE NAME"];
+            const column = rule["EXTERNAL COLUMN NAME"];
+
+            let uid;
+            try  {
+              uid = this.assetMetaDataToTechnologyAssetUuid[database][schema][table][column];
+            } catch(e) {
+              console.log(`Mapping not found to: ${database}-${schema}-${table}-${column}, continuing...`);
+              continue;
+            }
+
+            const ruleUid = rule.DESCRIPTION.match(/.*ruleUid=([^;]+)/)
+            if (ruleUid) {
+              axios.request({
+                url: `${this.url}/api/v2/dataquality/${ruleUid}`,
+                method: "POST",
+                headers: {
+                  "Authorization": `${this.apiKey};${this.apiSecret}`
+                },
+                data: {
+                  "Results": [
+                    {
+                      "Result": {
+                        "PassCount": rule["ROWS PASSED"],
+                        "FailCount": rule["ROWS FAILED"],
+                        "EffectiveDate": new Date(rule["LAST VALIDATED"]),
+                        "RunDate": new Date().toJSON()
+                      },
+                      "AssetsMappings": [
+                        {
+                          "AssetPath": "string",
+                          "AssetUID": uid
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }).then(() => {
+                console.log(`Rule: '${rule["NAME"]}' sent successfully.`)
+              }).catch((err) => {
+                console.log(err);
+              })
+            }
+          }
+
+          this.postSendDataQualityRules().then(() => {
+            process.env.DATA3SIXTY_LAST_RUN = new Date().toString();
+          });
+        })
       });
     });
-  }
+  };
 
   /*
    *
@@ -337,7 +467,7 @@ export class Data3SixtyConnector extends Connector {
    * you would like. This might be sending an email or another 
    * type of notification to a system.
    */
-  postSendDataQualityRules(): PromiseLike<any>  {
+  postSendDataQualityRules(): PromiseLike<any> {
     return new Promise((resolve: any, reject: any) => {
       resolve(null);
     });
@@ -356,3 +486,8 @@ export class Data3SixtyConnector extends Connector {
     )(jsonString);
   }
 };
+
+const runner = new Data3SixtyConnector();
+runner.retrieveAssets().then(() => {
+  runner.sendDataQualityRules()
+})

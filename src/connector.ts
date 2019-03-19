@@ -16,40 +16,6 @@ const $ = tailored.variable();
 
 export default abstract class Connector {
 
-  configuration: any;
-  data3SixtyUrl?: string;
-
-  constructor() {
-    // TODO: Once the project is done there will need to be some thought on where this should be.
-    const connectorConfig = fs.readFileSync(path.resolve(__dirname, "../connector-config.json"), "utf8");
-    this.configuration = JSON.parse(connectorConfig);
-
-    tailored.defmatch(
-      tailored.clause([$], () => {
-        throw `You're missing a configuration file. 
-        Please create a configuration named 'connector-config.json' 
-        in the root of this project.`;
-      }, (config: object) => !Boolean(config)),
-
-      tailored.clause([{
-        connectorOptions: {
-          data3SixtyUrl: ""
-        }
-      }], () => {
-        throw `You're missing a URL for your data3Sixty instance.
-          It should look something like name.data3Sixty.com`;
-      }),
-
-      tailored.clause([{
-        connectorOptions: {
-          data3SixtyUrl: $,
-        }
-      }], (data3SixtyUrl: string) => {
-        this.data3SixtyUrl = data3SixtyUrl;
-      })
-    )(this.configuration);
-  }
-
   /*
    * Before getting assets from the source (typically 
    * a data governance center) do whatever clean-up you would like.
