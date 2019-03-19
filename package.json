@@ -13,6 +13,7 @@
     "@types/node": "^10.12.15",
     "axios": "^0.18.0",
     "bluebird": "^3.5.3",
+    "edit-json-file": "^1.2.1",
     "immer": "^1.9.3",
     "intern": "^4.3.3",
     "tailored": "^2.7.5"
