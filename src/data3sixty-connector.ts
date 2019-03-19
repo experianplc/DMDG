@@ -1,9 +1,12 @@
 import Connector from "./connector";
 import * as tailored from "tailored";
+//@ts-ignore
+import jsonFile from "edit-json-file";
 import axios from "axios";
 import * as EventEmitter from "events";
 import produce from "immer";
 import Promise from "bluebird";
+import path from "path";
 
 const $ = tailored.variable();
 const _ = tailored.wildcard();
@@ -121,6 +124,9 @@ interface MetaDataMap {
 
 export class Data3SixtyConnector extends Connector {
 
+  // File object that contains config
+  configuration: any;
+
   // Environment location of data3sixty, e.g. yourname.data3sixty.com
   url?: string;
 
@@ -158,37 +164,39 @@ export class Data3SixtyConnector extends Connector {
   constructor() {
     super();
 
-    const URL = process.env.DATA3SIXTY_URL;
+    this.configuration = jsonFile(`${path.resolve(__dirname, "..")}/connector-config.json`);
+
+    const URL = this.configuration.get("Data3SixtyConnector.data3SixtyUrl");
     if (!URL) {
       throw "DATA3SIXTY_URL not found";
     } else {
       this.url = URL;
     }
 
-    const API_KEY = process.env.DATA3SIXTY_API_KEY;
+    const API_KEY = this.configuration.get("Data3SixtyConnector.apiKey");
     if (!API_KEY) {
       throw "DATA3SIXTY_API_KEY not found"
     } else {
       this.apiKey = API_KEY;
     }
 
-    const API_SECRET = process.env.DATA3SIXTY_API_SECRET;
+    const API_SECRET = this.configuration.get("Data3SixtyConnector.apiSecret");
     if (!API_SECRET) {
       throw "DATA3SIXTY_API_SECRET not found";
     } else {
       this.apiSecret = API_SECRET;
     }
 
-    const FUSION_UID = process.env.DATA3SIXTY_FUSION_ATTRIBUTE_UID;
+    const FUSION_UID = this.configuration.get("Data3SixtyConnector.fusionAttributeUid");
     if (!FUSION_UID) {
       throw "DATA3SIXTY_FUSION_ATTRIBUTE_UID not found";
     } else {
       this.fusionAttributeUid = FUSION_UID;
     }
 
-    const LAST_RUN = process.env.DATA3SIXTY_LAST_RUN;
+    const LAST_RUN = this.configuration.get("Data3SixtyConnector.lastRun");
     if (!LAST_RUN) {
-      console.log("DATA3SIXTY_LAST_RUN not found")
+      console.log("lastRun not found")
       console.log("Defaulting to 1900-01-01");
       this.lastRun = new Date("1900-01-01");
     } else {
@@ -363,32 +371,32 @@ export class Data3SixtyConnector extends Connector {
   sendDataQualityRules(): PromiseLike<any>  {
     return this.preSendDataQualityRules().then(() => {
       return new Promise((resolve: any, reject: any) => {
-        let month = String(this.lastRun.getUTCMonth() + 1);
+        let month = String(this.lastRun.getMonth() + 1);
         if (month.length === 1) {
           month = "0" + month;
         }
 
-        let day = String(this.lastRun.getUTCDate());
+        let day = String(this.lastRun.getDate());
         if (day.length === 1) {
           day = "0" + day;
         }
 
-        let year = String(this.lastRun.getUTCFullYear());
+        let year = String(this.lastRun.getFullYear());
         if (year.length === 1) {
           year = "0" + year;
         }
 
-        let hours = String(this.lastRun.getUTCHours());
+        let hours = String(this.lastRun.getHours());
         if (hours.length === 1) {
           hours = "0" + hours;
         }
 
-        let minutes = String(this.lastRun.getUTCMinutes());
+        let minutes = String(this.lastRun.getMinutes());
         if (minutes.length === 1){
           minutes = "0" + minutes;
         }
 
-        let milliseconds = String(this.lastRun.getUTCMilliseconds());
+        let milliseconds = String(this.lastRun.getMilliseconds());
         if (milliseconds.length === 1) {
           milliseconds = "0" + milliseconds;
         }
@@ -403,6 +411,14 @@ export class Data3SixtyConnector extends Connector {
             sql: `SELECT * FROM "RULES" WHERE "VERSIONS OFFSET" = 0 AND "LAST VALIDATED" > '${safeDateTimeString}'`
           }
         }).then((odbcData) => {
+
+
+          if (odbcData.data.length === 0) {
+            console.log("No data found (either no rules have been created, or no new rules have been validated)");
+          }
+
+          let postPromises: PromiseLike<any>[] = [];
+
           for (let i = 0; i < odbcData.data.length; i++) {
             const rule: PandoraRule = odbcData.data[i];
 
@@ -411,7 +427,7 @@ export class Data3SixtyConnector extends Connector {
             const table = rule["EXTERNAL TABLE NAME"].toLocaleLowerCase();
             const column = rule["EXTERNAL COLUMN NAME"].toLocaleLowerCase();
 
-            let uid;
+            let uid: string;
             try  {
               uid = this.assetMetaDataToTechnologyAssetUuid[database][schema][table][column];
             } catch(e) {
@@ -422,40 +438,52 @@ export class Data3SixtyConnector extends Connector {
             const ruleUid = rule.DESCRIPTION.match(/.*ruleUid=([^;]+)/)
 
             if (ruleUid) {
-              axios.request({
-                url: `${this.url}/api/v2/dataquality/${ruleUid[1]}`,
-                method: "POST",
-                headers: {
-                  "Authorization": `${this.apiKey};${this.apiSecret}`
-                },
-                data: {
-                  "Results": [
-                    {
-                      "Result": {
-                        "PassCount": rule["ROWS PASSED"],
-                        "FailCount": rule["ROWS FAILED"],
-                        "EffectiveDate": new Date(rule["LAST VALIDATED"]),
-                        "RunDate": new Date().toJSON()
-                      },
-                      "AssetsMappings": [
-                        {
-                          "AssetPath": "string",
-                          "AssetUID": uid
-                        }
-                      ]
-                    }
-                  ]
-                }
-              }).then(() => {
-                console.log(`Rule: '${rule["NAME"]}' sent successfully.`)
-              }).catch((err) => {
-                console.log(err);
-              })
+              const postPromise = new Promise((resolve, reject) => {
+                axios.request({
+                  url: `${this.url}/api/v2/dataquality/${ruleUid[1]}`,
+                  method: "POST",
+                  headers: {
+                    "Authorization": `${this.apiKey};${this.apiSecret}`
+                  },
+                  data: {
+                    "Results": [
+                      {
+                        "Result": {
+                          "PassCount": rule["ROWS PASSED"],
+                          "FailCount": rule["ROWS FAILED"],
+                          "EffectiveDate": new Date(rule["LAST VALIDATED"]),
+                          "RunDate": new Date().toJSON()
+                        },
+                        "AssetsMappings": [
+                          {
+                            "AssetPath": "string",
+                            "AssetUID": uid
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }).then((data) => {
+                  resolve(data);
+                  console.log(`Rule: '${rule["NAME"]}' sent successfully.`)
+                }).catch((err) => {
+                  reject(err);
+                  console.log(err);
+                })
+              });
+
+              postPromises.push(postPromise);
             }
           }
 
-          this.postSendDataQualityRules().then(() => {
-            process.env.DATA3SIXTY_LAST_RUN = new Date().toString();
+          Promise.all(postPromises).then((data) => {
+            if (data.length > 0) {
+              this.configuration.set("Data3SixtyConnector.lastRun", new Date().toString());
+              this.configuration.save();
+            }
+
+            this.postSendDataQualityRules().then(() => {
+            });
           });
         })
       });
@@ -473,7 +501,6 @@ export class Data3SixtyConnector extends Connector {
       resolve(null);
     });
   }
-
 
   private _normalizeJsonString(jsonString: string): NormalizedAssetProperties {
     return tailored.defmatch(
