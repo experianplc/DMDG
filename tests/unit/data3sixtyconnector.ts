@@ -21,8 +21,20 @@ registerSuite("Data3SixtyConnector tests", {
       });
     },
 
-    "Data3SixtyConnector can post data quality results"() {
-      assert.equal(false, true);
+    "Data3SixtyConnector can post data quality rule results"() {
+      let connector = new Data3SixtyConnector();
+
+      return connector.sendDataQualityRules().then((response) => {
+        assert.equal(response.status, 200, "A response is present");
+      })
+    },
+
+    "Data3SixtyConnector can post data quality profile results"() {
+      let connector = new Data3SixtyConnector();
+
+      return connector.sendDataQualityRules().then((response) => {
+        assert.equal(response.status, 200, "A response is present");
+      })
     }
   }
 
