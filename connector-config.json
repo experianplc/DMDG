@@ -6,5 +6,11 @@
     "fusionAttributeUid": "e3fff74d-b1ce-4fee-b7f1-291781f88eee",
     "src": "src/data3sixty-connector.js",
     "lastRun": "Fri Apr 26 2019 13:06:58 GMT-0400 (EDT)"
+  },
+  "CollibraConnector": {
+    "collibraUrl": "https://experian-dev-54.collibra.com",
+    "src": "lib/collibra-connector.js",
+    "lastRun": ""
   }
+
 }

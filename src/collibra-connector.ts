@@ -11,8 +11,109 @@ import path from "path";
 const $ = tailored.variable();
 const _ = tailored.wildcard();
 
+interface PandoraRule {
+    "NAME": string,
+    "SCORE": string,
+    "MEASURE": string,
+    "PASSED MEASURE": string,
+    "FAILED MEASURE": string,
+    "RULE CATEGORY": string,
+    "DESCRIPTION": string,
+    "INCLUDED": string,
+    "FILTER": string,
+    "ROWS PASSED": string,
+    "ROWS FAILED": string,
+    "TABLE": string,
+    "TABLE VERSION": string,
+    "VERSIONS OFFSET": string,
+    "COLUMN": string,
+    "SCHEMA": string,
+    "FUNCTION": string,
+    "VERSION": string,
+    "PARAMETERS": string,
+    "TYPE": string,
+    "ROWS CONSIDERED": string,
+    "ROWS IGNORED": string,
+    "PASSED": string,
+    "FAILED": string,
+    "CONSIDERED": string,
+    "IGNORED": string,
+    "CATEGORY": string,
+    "TABLE CREATED": string,
+    "LAST VALIDATED": string,
+    "CONNECTION STRING": string,
+    "EXTERNAL COLUMN NAME": string,
+    "EXTERNAL DATABASE": string,
+    "EXTERNAL SCHEMA": string,
+    "EXTERNAL SERVER": string,
+    "EXTERNAL TABLE NAME": string,
+    "FAIL RANGE": string,
+    "FAILED SCORE": string,
+    "LATEST TABLE VERSION": string,
+    "PASS RANGE": string,
+    "RESULT": string,
+    "RULE CATEGORY ID": string,
+    "RULE THRESHOLD": string
+}
 
-export class CollibraConnoctor extends Connector {
+interface CommunityResult {
+  id: string;
+  createdBy: string;
+  createdOn: number;
+  lastModifiedBy: string;
+  lastModifiedOn: number;
+  system: boolean;
+  resourceType: string;
+  name: string;
+  description: string;
+}
+
+interface CommunityGetResponse {
+  total: number;
+  offset: number;
+  limit: number;
+  results: CommunityResult[]
+}
+
+interface DomainGetResponse {
+  total: number;
+  offset: number;
+  limit: number;
+  results: DomainResult[];
+}
+
+interface DomainResult {
+  type: {
+    name: string,
+      id: string,
+      resourceType: string
+  };
+  community: {
+    name: string,
+      id: string,
+      resourceType: string
+  };
+  excludedFromAutoHyperlinking: boolean;
+  description: string;
+  name: string;
+  createdBy: string;
+  createdOn: number;
+  lastModifiedBy: string;
+  lastModifiedOn: number;
+  system: boolean;
+  resourceType: string;
+  id: string;
+}
+
+interface DomainArguments {
+  name: string;
+  communityId: string;
+  typeId: string;
+  description?: string;
+}
+
+
+export class CollibraConnector extends Connector {
 
   // File object that contains config
   configuration: any;
@@ -26,12 +127,22 @@ export class CollibraConnoctor extends Connector {
   // Location to the HTTP ODBC API
   odbcUrl: string
 
+  // ID in Collibra for the community
+  communityId: string;
+
+  // Maps Domain names to IDs
+  domainNameToId: any;
+
+  // Used to make subsequent API requests to the Collibra Data Governance Center API.
+  sessionToken: string;
+  cookie: string;
+
   constructor() {
     super();
 
     this.configuration = jsonFile(`${path.resolve(__dirname, "..")}/connector-config.json`);
 
-    const URL = this.configuration.get("Data3SixtyConnector.data3SixtyUrl");
+    const URL = this.configuration.get("CollibraConnector.collibraUrl");
     if (!URL) {
       throw "COLLIBRA_URL not found";
     } else {
@@ -54,8 +165,10 @@ export class CollibraConnoctor extends Connector {
       this.odbcUrl = HTTP_ODBC_URL;
     }
 
-    this.assetMetaDataToTechnologyAssetUuid = {};
-
+    this.communityId = "";
+    this.domainNameToId = {};
+    this.sessionToken = "";
+    this.cookie = "";
   };
 
   /*
@@ -96,9 +209,10 @@ export class CollibraConnoctor extends Connector {
    * before retrieval.
    */
   preSendDataQualityRules(): PromiseLike<any> {
-    return new Promise((resolve: any, reject: any) => {
-      resolve(null);
-    });
+    // Move to config
+    const username = "Admin";
+    const password = "Password123";
+    return this.authenticate(username, password);
   };
 
   /*
@@ -107,38 +221,54 @@ export class CollibraConnoctor extends Connector {
    */
   sendDataQualityRules(): PromiseLike<any>  {
     return this.preSendDataQualityRules().then(() => {
-      // Check to see if there are any items being returned from HTTP-ODBC
-      axios.request({ 
-        url: `http://${this.odbcUrl}/query`,
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        data: {
-          sql: `SELECT * FROM "RULES"`,
+      // TODO: Move to environment variables or configuration file
+      const communityName = "javascript community";
+      const communityDescription = "community description";
+
+      const domains = [
+        { 
+          name: "Data Quality Results", 
+          typeId: "00000000-0000-0000-0000-000000030003", 
+          description: "Data quality imported from Experian" 
+        },
+        { 
+          name: "Data Quality Rules", 
+          typeId: "00000000-0000-0000-0000-000000030023", 
+          description: "Data quality rules" 
         }
-      }).then((profileData) => {
+      ];
 
       // Create community if non existent
-      /*
-        For each run:
-        - Create community if nonexistent
-        - Create "Governance Asset Domain" if nonexistent
-        - Create "Rulebook" if nonexistent
-        - Create "Data Asset Domain" with Database as name if nonexistent
-       
-        For each rule:
-          * Create Database asset and add to Data Asset Domain if nonexistent
-          * Create Table asset and add to Data Asset Domain if nonexistent
-          * Create column assets and add to Data Asset Domain if nonexistent
-          * Create rules and add to Rulebook if nonexistent
-          * Create Data Quality Metrics and add them to Governance Asset Domain if nonexistent
-          
-          * Create relations from Data Quality Metric to Asset, Data Quality Rule and Data Quality
-            Dimension (optionally)
-          * Create relation from DQM to DQR
-          * Create relation from DQM to DQD
-     */
-    });
-  };
+      this.getOrCreateCommunity(communityName, communityDescription).then(() => {
+        domains.forEach((domain) => {
+          this.getOrCreateDomain({
+            name: domain.name,
+            communityId: this.communityId,
+            typeId: domain.typeId,
+            description: domain.description
+          })
+        });
+      }).then(() => {
+        axios.request({ 
+          url: `http://${this.odbcUrl}/query`,
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Cookie": this.cookie },
+          data: {
+            sql: `SELECT * FROM "RULES"`,
+          }
+        }).then((ruleData: any) => {
+          // get rules
+          // for each rule:
+          // Create Database asset and add to Data Asset Domain if nonexistent
+          //  Create Table asset and add to Data Asset Domain if nonexistent
+          //  Create column assets and add to Data Asset Domain if nonexistent
+          //  Create rules and add to Rulebook if nonexistent
+          //  Create Data Quality Metrics and add them to Governance Asset Domain if nonexistent
+        });
+
+      });
+    })
+  }
 
   /*
    *
@@ -160,97 +290,8 @@ export class CollibraConnoctor extends Connector {
   }
 
   sendDataQualityProfiles(): PromiseLike<any> {
-    return this.preSendDataQualityProfiles().then(() => {
-      return new Promise((resolve: any, reject: any) => {
-        axios.request({ 
-          url: `http://${this.odbcUrl}/query`,
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          data: {
-            sql: `SELECT * FROM "COLUMNS"`,
-          }
-        }).then((profileData) => {
-          if (profileData.data.length === 0) {
-            console.log("No data found (either no rules have been created, or no new rules have been validated)");
-          }
-
-          let postPromises: PromiseLike<any>[] = [];
-
-          for (let i = 0; i < profileData.data.length; i++) {
-            const rule: PandoraProfile = profileData.data[i];
-
-            const database = rule["EXTERNAL DATABASE"].toLocaleLowerCase();
-            const schema = rule["SCHEMA EXTERNAL NAME"].toLocaleLowerCase();
-            const table = rule["TABLE EXTERNAL NAME"].toLocaleLowerCase();
-            const column = rule["EXTERNAL NAME"].toLocaleLowerCase();
-
-            let uid: string;
-            try  {
-              uid = this.assetMetaDataToTechnologyAssetUuid[database][schema][table][column];
-            } catch(e) {
-              console.log(`Mapping not found to: ${database}-${schema}-${table}-${column}, continuing...`);
-              continue;
-            }
-
-            console.log(`Rule found: ${rule}`);
-            const postPromise = new Promise((resolve, reject) => {
-              axios.request({
-                url: `${this.url}/api/v2/profiles/`,
-                method: "POST",
-                headers: {
-                  "Authorization": `${this.apiKey};${this.apiSecret}`
-                },
-                data: [
-                  {
-                    "AssetUid": uid,
-                    "RowCount": rule["ROW COUNT"],
-                    "Uniqueness": rule["UNIQUENESS"],
-                    "UniqueCount": rule["UNIQUE COUNT"],
-                    "Completeness": rule["COMPLETENESS"],
-                    "NullCount": rule["NULL COUNT"],
-                    "BlankCount": rule["NULL COUNT"],
-                    "DataType": rule["DOMINANT DATATYPE"],
-                    "MinimumValue": rule["MINIMUM"],
-                    "MaximumValue": rule["MAXIMUM"],
-                    "Precision": rule["PRECISION"],
-                    "Scale": rule["SCALE"],
-                    "Average": rule["AVERAGE"],
-                    "Median": 0, /* Pandora doesn't support this */
-                    "StandardDeviation": rule["STANDARD DEVIATION OF VALUES"],
-                    "Top10Values": [
-                      {
-                        "Value": rule["MOST COMMON VALUE"],
-                        "Count": rule["COUNT OF MOST COMMON VALUES"]
-                      }
-                    ],
-                    "ProcessIdentifier": rule["ID"]
-                  }
-                ]
-              }).then((data) => {
-                resolve(data);
-                console.log(`PROFILE DATA FOR: '${rule["NAME"]}' sent successfully.`)
-              }).catch((err) => {
-                reject(err);
-                console.log(err);
-              })
-            });
-
-            postPromises.push(postPromise);
-          }
-
-          Promise.all(postPromises).then((data) => {
-            if (data.length > 0) {
-              this.configuration.set("Data3SixtyConnector.lastRun", new Date().toString());
-              this.configuration.save();
-            }
-
-            this.postSendDataQualityRules().then(() => {
-            });
-          });
-
-
-        });
-      })
+    return new Promise((resolve: any, reject: any) => {
+      resolve(null);
     });
   }
 
@@ -260,56 +301,143 @@ export class CollibraConnoctor extends Connector {
     });
   }
 
-  private _getSafeDateTimeString(): string {
-    let month = String(this.lastRun.getMonth() + 1);
-    if (month.length === 1) {
-      month = "0" + month;
-    }
-
-    let day = String(this.lastRun.getDate());
-    if (day.length === 1) {
-      day = "0" + day;
-    }
-
-    let year = String(this.lastRun.getFullYear());
-    if (year.length === 1) {
-      year = "0" + year;
-    }
-
-    let hours = String(this.lastRun.getHours());
-    if (hours.length === 1) {
-      hours = "0" + hours;
-    }
-
-    let minutes = String(this.lastRun.getMinutes());
-    if (minutes.length === 1){
-      minutes = "0" + minutes;
-    }
-
-    let milliseconds = String(this.lastRun.getMilliseconds());
-    if (milliseconds.length === 1) {
-      milliseconds = "0" + milliseconds;
-    }
-
-    return `${year}-${month}-${day} ${hours}:${minutes}:${milliseconds}`;
+  private authenticate(username: string, password: string): PromiseLike<any> {
+    return new Promise((resolve: any) => {
+      axios.request({ 
+        url: `${this.url}/rest/2.0/auth/sessions`,
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        data: {
+          username,
+          password
+        }
+      }).then((response) => {
+        const data = response.data;
+        if (data) {
+          console.log("Sign in successful.");
+          this.sessionToken = data["csrfToken"];
+          this.cookie = response.headers["set-cookie"].join(" ");
+          resolve(data);
+        }
+      });
+    })
   }
 
-  private _normalizeJsonString(jsonString: string): NormalizedAssetProperties {
-    return tailored.defmatch(
-      tailored.clause([$], (value: string) => {
-        // Converts { Key: "Value" } to { "Key": "Value" }
-        return JSON.parse(value.replace(/(\w+):/g, function(match, p1) { return `"${p1}":` }))
-      }),
-      tailored.clause([_], () => {
-        throw "No string was input."
+  private getOrCreateCommunity(name: string, description: string): PromiseLike<any> {
+    if (this.communityId) {
+      console.log("Continuing on with Governance Asset Domain Name creation.")
+      return new Promise((resolve: any) => {
+        resolve(this.communityId);
       })
-    )(jsonString);
+    }
+
+    return new Promise((resolve: any, reject: any) => {
+      console.log("Community ID not saved. Checking to see if it exists in the Governance Center...");
+      const self = this;
+      axios.request({ 
+        url: `${this.url}/rest/2.0/communities`,
+        method: "GET",
+        headers: { "Cookie": this.cookie },
+        params: {
+          name: name,
+        }
+      }).then((response) => {
+        const data: CommunityGetResponse = response.data;
+
+        if (data.total === 0) {
+          console.log(`No community with name '${name}' found.`);
+          console.log("Creating community...");
+          axios.request({ 
+            url: `${this.url}/rest/2.0/communities`,
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Cookie": this.cookie },
+            data: {
+              name,
+              description,
+            }
+          }).then(({ data }) => {
+            console.log(`Community with name ${data.name} created successfully.`);
+            console.log(data);
+            this.communityId = data["ID"];
+            resolve(this.getOrCreateCommunity(name, description));
+          }).catch((err) => reject(err));
+        } else {
+          console.log("Community ID found in governance center. Saving locally...");
+          const result: CommunityResult  = data.results[0];
+          this.communityId = result.id;
+          resolve(this.getOrCreateCommunity(name, description));
+        }
+      }).catch((err) => { console.log(err); reject(err) });    
+    });
   }
+
+  private getOrCreateDomain(args: DomainArguments): PromiseLike<any> {
+    let { name, communityId, typeId, description } = args;
+
+    if (!communityId) { 
+      throw "Something went wrong. A community is not specified.";
+    }
+
+    if (!typeId) {
+      throw "Something went wrong. A typeId is not specified.";
+    }
+
+    if (this.domainNameToId[name]) {
+      console.log(`Id for domain '${name}' saved. Continuing...`)
+      return new Promise((resolve: any, reject: any) => {
+        resolve(this.domainNameToId[name]);
+      });
+    }
+
+    /* In effect, this checks to see if the Domain exists. 
+     * If it does exist, we take its value and save it, continuing.
+     * If it does not exist we create it and save its value, continuing.
+     */
+    return new Promise((resolve: any, reject: any) => {
+      axios.request({ 
+        url: `${this.url}/rest/2.0/communities`,
+        method: "GET",
+        headers: { "Content-Type": "application/json", "Cookie": this.cookie },
+        params: {
+          name: name,
+          communityId: this.communityId,
+        }
+      }).then((response) => {
+        const data: DomainGetResponse = response.data;
+
+        if (data.total === 0) {
+          console.log(`No domain with name '${name}' found. Creating now...`);
+          axios.request({ 
+            url: `${this.url}/rest/2.0/domains`,
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Cookie": this.cookie },
+            data: {
+              name,
+              communityId: this.communityId,
+              typeId, 
+              description,
+            }
+          }).then((response: any) => {
+            console.log(`Domain with name ${response.name} created successfully.`);
+            this.domainNameToId[name] = response.ID;
+            resolve(this.getOrCreateDomain({name, communityId, typeId, description}))
+          })
+
+        } else {
+          const domainResult: DomainResult = data.results[0];
+          this.domainNameToId[name] = domainResult.id;
+          resolve(this.getOrCreateDomain({name, communityId, typeId, description}))
+        }
+      })
+    }) 
+  };
+
+
 };
 
 // Send rule data and profile data over.
 const runner = new CollibraConnector();
-runner.retrieveAssets().then(() => {
+ runner.retrieveAssets().then(() => {
   runner.sendDataQualityRules();
   runner.sendDataQualityProfiles();
-})
+});
