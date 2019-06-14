@@ -10,6 +10,13 @@ import path from "path";
 
 const $ = tailored.variable();
 const _ = tailored.wildcard();
+const debug = true;
+
+function log(message: string) {
+  if (debug) {
+    console.log(message);
+  }
+}
 
 interface PandoraRule {
     "NAME": string,
@@ -54,6 +61,114 @@ interface PandoraRule {
     "RESULT": string,
     "RULE CATEGORY ID": string,
     "RULE THRESHOLD": string
+}
+
+
+interface RelationAttributeArguments {
+  sourceId: string;
+  targetId: string;
+  typeId: string;
+  startingDate?: number;
+  endingDate?: number;
+};
+
+interface RelationGetResponse {
+  total: number;
+  offset: number;
+  limit: number;
+  results: RelationResult[];
+};
+
+interface RelationResult {
+  source: {
+    name: string,
+    id: string,
+    resourceType: string
+  },
+  target: {
+    name: string,
+    id: string,
+    resourceType: string
+  },
+  type: {
+    id: string
+    resourceType: string
+  },
+  startingDate: number,
+  endingDate: number,
+  createdBy: string,
+  createdOn: number,
+  lastModifiedBy: string,
+  lastModifiedOn: number,
+  system: boolean,
+  resourceType: string,
+  id: string
+}
+
+
+interface AssetResult {
+  displayName: string;
+  articulationScore: number;
+  excludedFromAutoHyperlinking: boolean;
+  domain: {
+    name: string;
+    id: string;
+    resourceType: string;
+  },
+  type: {
+    name: string;
+    id: string;
+    resourceType: string;
+  },
+  status: {
+    name: string;
+    id: string;
+    resourceType: string;
+  },
+  avgRating: number;
+  ratingsCount: number;
+  name: string;
+  createdBy: string;
+  createdOn: number;
+  lastModifiedBy: string;
+  lastModifiedOn: number;
+  system: boolean;
+  resourceType: string;
+  id: string;
+}
+
+interface AssetGetResponse {
+  total: number;
+  offset: number
+  limit: number;
+  results: AssetResult[]; 
+}
+
+interface AttributeGetResponse {
+  total: number,
+  offset: number,
+  limit: number;
+  results: AttributeResult[]
+}
+
+interface AttributeResult {
+  type: {
+    name: string,
+    id: string,
+    resourceType: string
+  },
+  asset: {
+    name: string,
+    id: string,
+    resourceType: string
+  },
+  createdBy: string,
+  createdOn: number,
+  lastModifiedBy: string,
+  lastModifiedOn: number,
+  system: boolean,
+  resourceType: string;
+  id: string;
 }
 
 interface CommunityResult {
@@ -105,6 +220,19 @@ interface DomainResult {
   id: string;
 }
 
+interface AssetAttributeArguments {
+  assetId: string;
+  typeId: string | string[];
+  value: any;
+}
+
+interface AssetArguments {
+  name: string; 
+  displayName?: string;
+  domainId: string; 
+  typeId: string;
+}
+
 interface DomainArguments {
   name: string;
   communityId: string;
@@ -112,6 +240,39 @@ interface DomainArguments {
   description?: string;
 }
 
+  // Collibra Mapping
+  // Ideally this entire thing is portable so it can be transfered to another
+  // system in a relatively straight-forward fashion.
+  /*
+   * Should look something like this:
+   *
+   * {
+   *  communityId: ID GOES HERE
+   *  - domain id -: {
+   *    domainId: ID GOES HERE
+   *    - asset id -: {
+   *      assetId: ID GOES HERE
+   *      - attribute id -: {
+   *      },
+   *    }
+   * }
+   */
+
+interface Other {
+  [key: string]: string;
+}
+
+/*
+  interface MetaDataMap {
+    [key: string]: string | { // Community ids
+      [key: string]: string | { // Domain ids
+        [key: string]: string | { // Asset ids
+          [key: string]: string     // Attribute Ids
+        }
+      }
+    }
+  }
+*/
 
 export class CollibraConnector extends Connector {
 
@@ -127,11 +288,7 @@ export class CollibraConnector extends Connector {
   // Location to the HTTP ODBC API
   odbcUrl: string
 
-  // ID in Collibra for the community
-  communityId: string;
-
-  // Maps Domain names to IDs
-  domainNameToId: any;
+  metadataMap: any;
 
   // Used to make subsequent API requests to the Collibra Data Governance Center API.
   sessionToken: string;
@@ -151,8 +308,8 @@ export class CollibraConnector extends Connector {
 
     const LAST_RUN = this.configuration.get("CollibraConnector.lastRun");
     if (!LAST_RUN) {
-      console.log("lastRun not found")
-      console.log("Defaulting to 1900-01-01");
+      log("lastRun not found")
+      log("Defaulting to 1900-01-01");
       this.lastRun = new Date("1900-01-01");
     } else {
       this.lastRun = new Date(LAST_RUN);
@@ -165,8 +322,7 @@ export class CollibraConnector extends Connector {
       this.odbcUrl = HTTP_ODBC_URL;
     }
 
-    this.communityId = "";
-    this.domainNameToId = {};
+    this.metadataMap = {};
     this.sessionToken = "";
     this.cookie = "";
   };
@@ -209,7 +365,7 @@ export class CollibraConnector extends Connector {
    * before retrieval.
    */
   preSendDataQualityRules(): PromiseLike<any> {
-    // Move to config
+    // TODO: Move to config
     const username = "Admin";
     const password = "Password123";
     return this.authenticate(username, password);
@@ -238,34 +394,197 @@ export class CollibraConnector extends Connector {
         }
       ];
 
+      let communityId: string; 
+
       // Create community if non existent
-      this.getOrCreateCommunity(communityName, communityDescription).then(() => {
+      this.getOrCreateCommunity(communityName, communityDescription).then((id) => {
+        communityId = id;
+
+        let promises: PromiseLike<string>[] = [];
         domains.forEach((domain) => {
-          this.getOrCreateDomain({
+          promises.push(this.getOrCreateDomain({
             name: domain.name,
-            communityId: this.communityId,
+            communityId,
             typeId: domain.typeId,
             description: domain.description
-          })
-        });
-      }).then(() => {
-        axios.request({ 
-          url: `http://${this.odbcUrl}/query`,
-          method: "POST",
-          headers: { "Content-Type": "application/json", "Cookie": this.cookie },
-          data: {
-            sql: `SELECT * FROM "RULES"`,
-          }
-        }).then((ruleData: any) => {
-          // get rules
-          // for each rule:
-          // Create Database asset and add to Data Asset Domain if nonexistent
-          //  Create Table asset and add to Data Asset Domain if nonexistent
-          //  Create column assets and add to Data Asset Domain if nonexistent
-          //  Create rules and add to Rulebook if nonexistent
-          //  Create Data Quality Metrics and add them to Governance Asset Domain if nonexistent
+          }))
         });
 
+        return Promise.all(promises);
+      }).then((domainIds: any) => {
+        domainIds.forEach((domainId: string, index: number) => {
+          this.metadataMap[communityId][domains[index]["name"]] = domainId;
+        })
+        
+        axios.request({ 
+          url: `${this.odbcUrl}/query`,
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          data: {
+            sql: `SELECT * FROM \"RULES\" WHERE \"VERSIONS OFFSET\" = 0`,
+          }
+        }).then((response: any) => {
+          const rules: PandoraRule[] = response.data;
+          const dataAssetDomainTypeId = "00000000-0000-0000-0000-000000030001";
+          const dataAssetDomainDescription = "Assets from database";
+
+          const rulebookId = this.metadataMap[communityId]["Data Quality Rules"];
+          const rulebookTypeId = "00000000-0000-0000-0000-000000031205";
+
+          // Asset types (move to environment variable)
+          const dataQualityMetricTypeId = "00000000-0000-0000-0000-000000031107";
+          const dataQualityRuleTypeId = "00000000-0000-0000-0000-000000031205"
+          const databaseTypeId = "00000000-0000-0000-0000-000000031006"
+          const tableTypeId = "00000000-0000-0000-0000-000000031007"
+          const columnTypeId = "00000000-0000-0000-0000-000000031008"
+
+          // It is possible for each rule to hypothetically refer to assets that are in separate
+          // data asset domains (denoted by being in separate databases), so it is necessary to do
+          // the check for each rule.
+          rules.forEach((rule: PandoraRule) => {
+            this.getOrCreateDomain({
+              name: rule["EXTERNAL SERVER"],
+              communityId,
+              typeId: dataAssetDomainTypeId,
+              description: dataAssetDomainDescription
+            }).then((dataAssetDomainId) => {
+
+              let promises = [];
+
+              promises.push(this.getOrCreateAsset({
+                name: rule["EXTERNAL DATABASE"],
+                domainId: dataAssetDomainId,
+                typeId: databaseTypeId
+              })); // Create relationship to Server
+
+              promises.push(this.getOrCreateAsset({
+                name: rule["EXTERNAL TABLE NAME"],
+                domainId: dataAssetDomainId,
+                typeId: tableTypeId
+              })); // Create relationship to Database
+
+              promises.push(this.getOrCreateAsset({
+                name: rule["EXTERNAL COLUMN NAME"],
+                domainId: dataAssetDomainId,
+                typeId: columnTypeId
+              })); // Create relationship to Table
+
+              const ruleMatch = rule["DESCRIPTION"].match(/rule=([^;]*)/); 
+              if(ruleMatch && ruleMatch.length === 2) {
+                promises.push(this.getOrCreateAsset({
+                  name: ruleMatch[1],
+                  domainId: rulebookId,
+                  typeId: rulebookTypeId
+                })) // Create relationship to Results
+              }
+
+              //  Create Data Quality Metrics and add them to Governance Asset Domain if nonexistent
+              promises.push(this.getOrCreateAsset({
+                name: rule["NAME"],
+                domainId: this.metadataMap[communityId]["Data Quality Results"],
+                typeId: dataQualityMetricTypeId
+              }).then((assetId: string) => {
+
+                const thresholdMatch = rule["PASS RANGE"].match(/(\d+).*/);
+                if (thresholdMatch) {
+                  const thresholdTypeId = "00000000-0000-0000-0000-000000000239";
+                  this.createAttribute({
+                    assetId,
+                    typeId: thresholdTypeId,
+                    value: Number(thresholdMatch[1])
+                  })
+                }
+
+                const descriptionMatch = rule["DESCRIPTION"].match(/description=([^;]*)/)
+                if (descriptionMatch) {
+                  const descriptionTypeId = "00000000-0000-0000-0000-000000003114";
+                  this.createAttribute({
+                    assetId,
+                    typeId: descriptionTypeId,
+                    value: descriptionMatch[1]
+                  });
+                }
+
+                const exampleMatch = rule["DESCRIPTION"].match(/example=([^;]*)/)
+                if (exampleMatch) {
+                  const descriptiveExampleMatchTypeId = "00000000-0000-0000-0000-000000003115";
+                  this.createAttribute({
+                    assetId,
+                    typeId: descriptiveExampleMatchTypeId,
+                    value: exampleMatch[1]
+                  });
+                }
+
+                const loadedRowsTypeId = "00000000-0000-0000-0000-000000000233";
+                this.createAttribute({
+                  assetId,
+                  typeId: loadedRowsTypeId,
+                  value: Number(rule["ROWS CONSIDERED"])
+                })
+
+                const rowsPassedTypeId = "00000000-0000-0000-0000-000000000236";
+                const conformityScoreTypeId = "00000000-0000-0000-0001-000500000021";
+                this.createAttribute({
+                  assetId,
+                  typeId: rowsPassedTypeId,
+                  value: Number(rule["ROWS PASSED"])
+                })
+
+                this.createAttribute({
+                  assetId,
+                  typeId: conformityScoreTypeId,
+                  value: Number(rule["ROWS PASSED"])
+                })
+
+                const rowsFailedTypeId = "00000000-0000-0000-0000-000000000237";
+                const nonConformityScoreTypeId = "00000000-0000-0000-0001-000500000022";
+                this.createAttribute({
+                  assetId,
+                  typeId: rowsFailedTypeId,
+                  value: Number(rule["ROWS FAILED"])
+                })
+
+                this.createAttribute({
+                  assetId,
+                  typeId: nonConformityScoreTypeId,
+                  value: Number(rule["ROWS FAILED"])
+                })
+
+                const resultTypeId = "00000000-0000-0000-0000-000000000238";
+                this.createAttribute({
+                  assetId,
+                  typeId: resultTypeId,
+                  value: rule["RESULT"] === "Green" ? true : false
+                })
+
+                const passingFractionTypeId = "00000000-0000-0000-0000-000000000240"; 
+                this.createAttribute({
+                  assetId,
+                  typeId: passingFractionTypeId,
+                  value: (Number(rule["ROWS PASSED"]) / Number(rule["ROWS CONSIDERED"])) * 100
+                })
+
+                const lastSyncDateTypeId = "00000000-0000-0000-0000-000000000256";
+                if (rule["LAST VALIDATED"] && rule["LAST VALIDATED"] !== "None") { 
+                  this.createAttribute({
+                    assetId,
+                    typeId: lastSyncDateTypeId,
+                    value: new Date((rule["LAST VALIDATED"] + " UTC").replace(/\d\d:\d\d:\d\d/, "00:00:00")).getTime()
+                  })
+                }
+              }));
+
+              //  Create relationshipto Metrics Dimensions (optionally)
+              //  Create relationship to Assets
+              /*
+               */
+              return Promise.all(promises);
+            }).then(() => {
+
+            
+            });
+          })
+        })
       });
     })
   }
@@ -302,7 +621,8 @@ export class CollibraConnector extends Connector {
   }
 
   private authenticate(username: string, password: string): PromiseLike<any> {
-    return new Promise((resolve: any) => {
+    return new Promise((resolve: any, reject: any) => {
+      log("Logging in...");
       axios.request({ 
         url: `${this.url}/rest/2.0/auth/sessions`,
         method: "POST",
@@ -314,25 +634,40 @@ export class CollibraConnector extends Connector {
       }).then((response) => {
         const data = response.data;
         if (data) {
-          console.log("Sign in successful.");
+          log("Sign in successful.");
           this.sessionToken = data["csrfToken"];
           this.cookie = response.headers["set-cookie"].join(" ");
           resolve(data);
         }
+      }).catch((error) => {
+        log(error.response.data);
+        log("Session already found. Deleting...");
+        axios.request({
+          url: `${this.url}/rest/2.0/auth/sessions/current`,
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" }
+        }).then(() => {
+          log("User logged out. Retrying...");
+          resolve(this.authenticate(username, password));
+        }).catch((error) => {
+          log(error.response.data);
+          reject(error);
+        })
       });
     })
   }
 
   private getOrCreateCommunity(name: string, description: string): PromiseLike<any> {
-    if (this.communityId) {
-      console.log("Continuing on with Governance Asset Domain Name creation.")
+    const communityId = Object.keys(this.metadataMap)[0];
+    if (communityId) {
+      log(`Community with id: ${communityId} found.`);
       return new Promise((resolve: any) => {
-        resolve(this.communityId);
+        resolve(communityId);
       })
     }
 
     return new Promise((resolve: any, reject: any) => {
-      console.log("Community ID not saved. Checking to see if it exists in the Governance Center...");
+      log("Community ID not saved. Checking to see if it exists in the Governance Center...");
       const self = this;
       axios.request({ 
         url: `${this.url}/rest/2.0/communities`,
@@ -345,8 +680,8 @@ export class CollibraConnector extends Connector {
         const data: CommunityGetResponse = response.data;
 
         if (data.total === 0) {
-          console.log(`No community with name '${name}' found.`);
-          console.log("Creating community...");
+          log(`No community with name '${name}' found.`);
+          log("Creating community...");
           axios.request({ 
             url: `${this.url}/rest/2.0/communities`,
             method: "POST",
@@ -355,19 +690,19 @@ export class CollibraConnector extends Connector {
               name,
               description,
             }
-          }).then(({ data }) => {
-            console.log(`Community with name ${data.name} created successfully.`);
-            console.log(data);
-            this.communityId = data["ID"];
+          }).then((response) => {
+            const communityResult: CommunityResult = response.data;
+            log(`Community with name ${communityResult.name} created successfully.`);
+            this.metadataMap[communityResult.id] = {};
             resolve(this.getOrCreateCommunity(name, description));
           }).catch((err) => reject(err));
         } else {
-          console.log("Community ID found in governance center. Saving locally...");
+          log("Community ID found in governance center. Saving locally...");
           const result: CommunityResult  = data.results[0];
-          this.communityId = result.id;
+          this.metadataMap[result.id] = {};
           resolve(this.getOrCreateCommunity(name, description));
         }
-      }).catch((err) => { console.log(err); reject(err) });    
+      }).catch((err) => { reject(err) });    
     });
   }
 
@@ -375,17 +710,17 @@ export class CollibraConnector extends Connector {
     let { name, communityId, typeId, description } = args;
 
     if (!communityId) { 
-      throw "Something went wrong. A community is not specified.";
+      throw "DomainCreationError: Something went wrong. A community is not specified.";
     }
 
     if (!typeId) {
-      throw "Something went wrong. A typeId is not specified.";
+      throw "DomainCreationError: Something went wrong. A typeId is not specified.";
     }
 
-    if (this.domainNameToId[name]) {
-      console.log(`Id for domain '${name}' saved. Continuing...`)
+    if (this.metadataMap[communityId][name]) {
+      log(`Id (${this.metadataMap[communityId][name]} for domain '${name}' saved. Continuing...`);
       return new Promise((resolve: any, reject: any) => {
-        resolve(this.domainNameToId[name]);
+        resolve(this.metadataMap[communityId][name]);
       });
     }
 
@@ -395,44 +730,276 @@ export class CollibraConnector extends Connector {
      */
     return new Promise((resolve: any, reject: any) => {
       axios.request({ 
-        url: `${this.url}/rest/2.0/communities`,
+        url: `${this.url}/rest/2.0/domains`,
         method: "GET",
         headers: { "Content-Type": "application/json", "Cookie": this.cookie },
         params: {
           name: name,
-          communityId: this.communityId,
+          communityId: Object.keys(this.metadataMap)[0],
         }
       }).then((response) => {
         const data: DomainGetResponse = response.data;
 
         if (data.total === 0) {
-          console.log(`No domain with name '${name}' found. Creating now...`);
+          log(`No domain with name '${name}' found. Creating now...`);
           axios.request({ 
             url: `${this.url}/rest/2.0/domains`,
             method: "POST",
             headers: { "Content-Type": "application/json", "Cookie": this.cookie },
             data: {
               name,
-              communityId: this.communityId,
+              communityId: Object.keys(this.metadataMap)[0],
               typeId, 
               description,
             }
           }).then((response: any) => {
-            console.log(`Domain with name ${response.name} created successfully.`);
-            this.domainNameToId[name] = response.ID;
+            const domainResult: DomainResult = response.data;
+            log(`Domain with name ${domainResult.name} created successfully.`);
+            this.metadataMap[communityId][name] = domainResult.id;
+            this.metadataMap[communityId][domainResult.id] = {};
             resolve(this.getOrCreateDomain({name, communityId, typeId, description}))
+          }).catch((error: any) => {
+            reject(error);
           })
 
         } else {
           const domainResult: DomainResult = data.results[0];
-          this.domainNameToId[name] = domainResult.id;
+          this.metadataMap[communityId][name] = domainResult.id;
+          this.metadataMap[communityId][domainResult.id] = {};
           resolve(this.getOrCreateDomain({name, communityId, typeId, description}))
         }
+      }).catch((error: any) => {
+        reject(error);
       })
     }) 
   };
 
+  private createRelation(args: RelationAttributeArguments): PromiseLike<any> {
+    const { sourceId, targetId, typeId } = args;
+    let { startingDate, endingDate } = args
 
+    if (!startingDate) {
+      startingDate = 1488016800;
+    }
+
+    if (!endingDate) {
+      endingDate = 1658021800;
+    }
+
+    if (!sourceId) { 
+      throw "RelationCreationError: Something went wrong. A sourceId is not specified.";
+    }
+
+    if (!targetId) { 
+      throw "RelationCreationError: Something went wrong. A targetId is not specified.";
+    }
+
+    if (!typeId) {
+      throw "AttributeCreationError: Something went wrong. A typeId is not specified.";
+    }
+
+    return new Promise((resolve: any, reject: any) => {
+      axios.request({ 
+        url: `${this.url}/rest/2.0/relations`,
+        method: "GET",
+        headers: { "Content-Type": "application/json", "Cookie": this.cookie },
+        params: {
+          sourceId,
+          targetId,
+          relationshipTypeId: typeId
+        }
+      }).then((response) => {
+        const data: RelationGetResponse = response.data;
+
+        if (data.total === 0) {
+          log(`No relation with type '${typeId}', sourceId 
+            '${sourceId} and targetId '${targetId}' found`
+          );
+          log(`Creating relation between ${sourceId} and ${targetId} now`);
+          axios.request({ 
+            url: `${this.url}/rest/2.0/relations`,
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Cookie": this.cookie },
+            data: {
+              sourceId,
+              targetId,
+              typeId
+            }
+          }).then((response: any) => {
+            const relationResult: RelationResult = response.data;
+            log(`Relation between ${sourceId} and ${targetId} successfully created.`);
+            return new Promise((resolve) => {
+              resolve(relationResult.id);
+            })
+          }).catch((error: any) => {
+            log(`PostRelationError with parameters: ${JSON.stringify(args)}`);
+            log(error.response.data);
+            reject(error);
+          })
+
+        } else {
+          const relationToBeDeletedId = data.results[0].id;
+          axios.request({
+            url: `${this.url}/rest/2.0/attributes/${relationToBeDeletedId}`,
+            method: "DELETE",
+            headers: { "Content-Type": "application/json", "Cookie": this.cookie },
+          }).then((data: any) => {
+            log(`Relation with ID: ${relationToBeDeletedId} deleted`);
+            return this.createRelation(args);
+          }).catch((error: any) => {
+            log(`DeleteRelationError with parameters: ${JSON.stringify(args)}`);
+            log(error.response.data);
+            reject(error);
+          })
+        }
+      }).catch((error: any) => {
+        log(`GetRelationError with parameters: ${JSON.stringify(args)}`);
+        log(error.response.data);
+      })
+    }); 
+  }
+  private createAttribute(args: AssetAttributeArguments): PromiseLike<any> {
+    const { assetId, typeId, value } = args;
+
+    if (!assetId) { 
+      throw "AttributeCreationError: Something went wrong. An asset is not specified.";
+    }
+
+    if (!typeId) {
+      throw "AttributeCreationError: Something went wrong. A typeId is not specified.";
+    }
+
+    return new Promise((resolve: any, reject: any) => {
+      axios.request({ 
+        url: `${this.url}/rest/2.0/attributes`,
+        method: "GET",
+        headers: { "Content-Type": "application/json", "Cookie": this.cookie },
+        params: {
+          assetId,
+          typeIds: typeId
+        }
+      }).then((response) => {
+        const data: AttributeGetResponse = response.data;
+
+        if (data.total === 0) {
+          log(`No attribute with type '${typeId}' found in asset '${assetId}'.`);
+          log(`Creating attribute with value: ${value} now...`);
+          axios.request({ 
+            url: `${this.url}/rest/2.0/attributes`,
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Cookie": this.cookie },
+            data: {
+              assetId,
+              typeId,
+              value
+            }
+          }).then((response: any) => {
+            const attributeResult: AttributeResult = response.data;
+            log(`Attribute with type ${typeId} created successfully in asset '${assetId}'.`);
+            return new Promise((resolve) => {
+              resolve(attributeResult.id);
+            })
+          }).catch((error: any) => {
+            log(`PostAttributeError with parameters: ${JSON.stringify(args)}`);
+            log(error.response.data);
+            reject(error);
+          })
+
+        } else {
+          const attributeToBeDeletedId = data.results[0].id;
+          axios.request({
+            url: `${this.url}/rest/2.0/attributes/${attributeToBeDeletedId}`,
+            method: "DELETE",
+            headers: { "Content-Type": "application/json", "Cookie": this.cookie },
+          }).then((data: any) => {
+            log(`Attribute with ID: ${attributeToBeDeletedId} deleted`);
+            return this.createAttribute({assetId, value, typeId});
+          }).catch((error: any) => {
+            log(`DeleteAttributeError with parameters: ${JSON.stringify(args)}`);
+            log(error.response.data);
+            reject(error);
+          })
+        }
+      }).catch((error: any) => {
+        log(`GetAttributeError with parameters: ${JSON.stringify(args)}`);
+        log(error.response.data);
+      })
+    }); 
+  }
+
+  private getOrCreateAsset(args: AssetArguments): PromiseLike<any> {
+    const { name, displayName, domainId, typeId } = args;
+
+    if (!domainId) { 
+      throw "AssetCreationError: Something went wrong. A domain is not specified.";
+    }
+
+    if (!typeId) {
+      throw "AssetCreationError: Something went wrong. A typeId is not specified.";
+    }
+
+    const communityId = Object.keys(this.metadataMap)[0];
+    if (this.metadataMap[communityId][domainId][name]) {
+      return new Promise((resolve: any) => {
+        resolve(this.metadataMap[communityId][domainId][name])
+      })
+    }
+
+    /* In effect, this checks to see if the Asset exists in the domain
+     * If it does exist, we take its value and patch it, continuing.
+     * If it does not exist we create it and save its value, continuing.
+     */
+    return new Promise((resolve: any, reject: any) => {
+      axios.request({ 
+        url: `${this.url}/rest/2.0/assets`,
+        method: "GET",
+        headers: { "Content-Type": "application/json", "Cookie": this.cookie },
+        params: {
+          name,
+          domainId,
+          typeId,
+        }
+      }).then((response) => {
+        const data: AssetGetResponse = response.data;
+
+        if (data.total === 0) {
+          log(`No asset with name '${name}' found in domain '${domainId}'. Creating now...`);
+          axios.request({ 
+            url: `${this.url}/rest/2.0/assets`,
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Cookie": this.cookie },
+            data: {
+              name,
+              domainId,
+              typeId, 
+              displayName,
+            }
+          }).then((response: any) => {
+            const assetResult: AssetResult = response.data;
+            log(`Asset with name ${assetResult.name} created successfully in domain '${domainId}'.`);
+            this.metadataMap[communityId][domainId][assetResult.id] = {};
+            this.metadataMap[communityId][domainId][name] = assetResult.id;
+            resolve(this.getOrCreateAsset({name, displayName, domainId, typeId}))
+          }).catch((error: any) => {
+            log(`PostAssetError with parameters: ${JSON.stringify(args)}`);
+            log(error.response.data);
+            reject(error);
+          })
+
+        } else {
+          const assetResult: AssetResult = data.results[0];
+          this.metadataMap[communityId][domainId][assetResult.id] = {}; // Add object for attributes
+          this.metadataMap[communityId][domainId][name] = assetResult.id;
+          log(`Id (${assetResult.id} for asset '${name}' saved. Continuing...`)
+          resolve(this.getOrCreateAsset({name, displayName, domainId, typeId}))
+        }
+      }).catch((error: any) => {
+        log(`GetAssetError with parameters: ${JSON.stringify(args)}`);
+        log(error.response.data);
+        reject(error);
+      })
+    }); 
+  }
 };
 
 // Send rule data and profile data over.
