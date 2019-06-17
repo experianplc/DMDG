@@ -18,6 +18,15 @@ function log(message: string) {
   }
 }
 
+interface RelationMap {
+  "EXTERNAL DATABASE": string;
+  "EXTERNAL COLUMN NAME": string;
+  "EXTERNAL TABLE NAME": string;
+  "RULE": string;
+  "DIMENSION"?: string;
+  "DQ METRIC": string;
+}
+
 interface PandoraRule {
     "NAME": string,
     "SCORE": string,
@@ -70,6 +79,7 @@ interface RelationAttributeArguments {
   typeId: string;
   startingDate?: number;
   endingDate?: number;
+  noDeletion?: boolean;
 };
 
 interface RelationGetResponse {
@@ -437,6 +447,7 @@ export class CollibraConnector extends Connector {
           const databaseTypeId = "00000000-0000-0000-0000-000000031006"
           const tableTypeId = "00000000-0000-0000-0000-000000031007"
           const columnTypeId = "00000000-0000-0000-0000-000000031008"
+          let metaPromises: any = [];
 
           // It is possible for each rule to hypothetically refer to assets that are in separate
           // data asset domains (denoted by being in separate databases), so it is necessary to do
@@ -449,33 +460,61 @@ export class CollibraConnector extends Connector {
               description: dataAssetDomainDescription
             }).then((dataAssetDomainId) => {
 
-              let promises = [];
+              /*
+               * This isn't the best practice, but for now we're
+               * going to use the indicies in order to store location information
+               *
+               */
+              let promises: PromiseLike<string>[] = [];
 
-              promises.push(this.getOrCreateAsset({
-                name: rule["EXTERNAL DATABASE"],
-                domainId: dataAssetDomainId,
-                typeId: databaseTypeId
-              })); // Create relationship to Server
+              // This contains information on the promises.
 
-              promises.push(this.getOrCreateAsset({
+              promises.push(
+                this.getOrCreateAsset({
+                  name: rule["EXTERNAL DATABASE"],
+                  domainId: dataAssetDomainId,
+                  typeId: databaseTypeId
+                }).then((id) => {
+                  metaPromises.push(["EXTERNAL DATABASE", id]);
+                  return id;
+                })
+              ); // Create relationship to Server
+
+
+              promises.push(
+                this.getOrCreateAsset({
                 name: rule["EXTERNAL TABLE NAME"],
                 domainId: dataAssetDomainId,
                 typeId: tableTypeId
-              })); // Create relationship to Database
+                }).then((id) => {
+                  metaPromises.push(["EXTERNAL TABLE NAME", id]);
+                  return id;
+                })
+              ); // Create relationship to Database
 
-              promises.push(this.getOrCreateAsset({
+              promises.push(
+                this.getOrCreateAsset({
                 name: rule["EXTERNAL COLUMN NAME"],
                 domainId: dataAssetDomainId,
                 typeId: columnTypeId
-              })); // Create relationship to Table
+                }).then((id) => {
+                  metaPromises.push(["EXTERNAL COLUMN NAME", id]);
+                  return id;
+                })
+              ); // Create relationship to Table
 
               const ruleMatch = rule["DESCRIPTION"].match(/rule=([^;]*)/); 
               if(ruleMatch && ruleMatch.length === 2) {
-                promises.push(this.getOrCreateAsset({
+                promises.push(
+                  this.getOrCreateAsset({
                   name: ruleMatch[1],
                   domainId: rulebookId,
                   typeId: rulebookTypeId
-                })) // Create relationship to Results
+                  }).then((id) => {
+                    metaPromises.push(["RULE", id]);
+                    return id;
+                  })
+                ) // Create relationship to Results
               }
 
               //  Create Data Quality Metrics and add them to Governance Asset Domain if nonexistent
@@ -485,6 +524,9 @@ export class CollibraConnector extends Connector {
                 typeId: dataQualityMetricTypeId
               }).then((assetId: string) => {
 
+                metaPromises.push(["DQ METRIC", assetId]);
+
+                // Create attributes for Data Quality Metric
                 const thresholdMatch = rule["PASS RANGE"].match(/(\d+).*/);
                 if (thresholdMatch) {
                   const thresholdTypeId = "00000000-0000-0000-0000-000000000239";
@@ -572,16 +614,68 @@ export class CollibraConnector extends Connector {
                     value: new Date((rule["LAST VALIDATED"] + " UTC").replace(/\d\d:\d\d:\d\d/, "00:00:00")).getTime()
                   })
                 }
+
+                return assetId;
               }));
 
-              //  Create relationshipto Metrics Dimensions (optionally)
-              //  Create relationship to Assets
-              /*
-               */
+              promises.push(metaPromises); 
               return Promise.all(promises);
-            }).then(() => {
+            }).then((ids: any) => {
+              debugger;
+              let promises: PromiseLike<string>[] = [];
+              const relationMap: RelationMap = this._fromEntries(ids[ids.length - 1]);
+              const tableDatabaseRelationTypeId = "00000000-0000-0000-0000-000000007045"; 
+              promises.push(
+                this.createRelation({
+                  sourceId: relationMap["EXTERNAL TABLE NAME"],
+                  targetId: relationMap["EXTERNAL DATABASE"],
+                  typeId: tableDatabaseRelationTypeId,
+                  noDeletion: true
+                })
+              );
 
-            
+              const columnTableRelationTypeId = "00000000-0000-0000-0000-000000007042"; 
+              promises.push( 
+                this.createRelation({
+                  sourceId: relationMap["EXTERNAL COLUMN NAME"],
+                  targetId: relationMap["EXTERNAL TABLE NAME"],
+                  typeId: columnTableRelationTypeId,
+                  noDeletion: true
+                })
+              );
+
+              const columnMetricTypeId = "00000000-0000-0000-0000-000000007018";
+              promises.push( 
+                this.createRelation({
+                  sourceId: relationMap["EXTERNAL COLUMN NAME"],
+                  targetId: relationMap["DQ METRIC"],
+                  typeId: columnMetricTypeId,
+                  noDeletion: true
+                })                      
+              )
+              const ruleMetricTypeId = "00000000-0000-0000-0000-000000007016"; 
+              promises.push( 
+                this.createRelation({
+                  sourceId: relationMap["RULE"],
+                  targetId: relationMap["DQ METRIC"],
+                  typeId: ruleMetricTypeId,
+                  noDeletion: true
+                })                      
+              );
+
+              if (relationMap["DIMENSION"]) {
+                const dimensionMetricTypeId = "00000000-0000-0000-0000-000000007053";
+                promises.push( 
+                  this.createRelation({
+                    sourceId: relationMap["DIMENSION"],
+                    targetId: relationMap["DQ METRIC"],
+                    typeId: dimensionMetricTypeId,
+                    noDeletion: true
+                  })                      
+                );
+              }
+
+              return Promise.all(promises);
             });
           })
         })
@@ -775,7 +869,7 @@ export class CollibraConnector extends Connector {
   };
 
   private createRelation(args: RelationAttributeArguments): PromiseLike<any> {
-    const { sourceId, targetId, typeId } = args;
+    const { sourceId, targetId, typeId, noDeletion } = args;
     let { startingDate, endingDate } = args
 
     if (!startingDate) {
@@ -795,8 +889,9 @@ export class CollibraConnector extends Connector {
     }
 
     if (!typeId) {
-      throw "AttributeCreationError: Something went wrong. A typeId is not specified.";
+      throw "RelationCreationError: Something went wrong. A typeId is not specified.";
     }
+
 
     return new Promise((resolve: any, reject: any) => {
       axios.request({ 
@@ -839,6 +934,13 @@ export class CollibraConnector extends Connector {
 
         } else {
           const relationToBeDeletedId = data.results[0].id;
+
+          if (noDeletion) {
+            return new Promise((resolve) => {
+              return relationToBeDeletedId;
+            })
+          }
+
           axios.request({
             url: `${this.url}/rest/2.0/attributes/${relationToBeDeletedId}`,
             method: "DELETE",
@@ -999,6 +1101,23 @@ export class CollibraConnector extends Connector {
         reject(error);
       })
     }); 
+  }
+
+  /*
+   * Transforms [[key1, val1], [key2, val2]] into
+   * {
+   *    key1: val1,
+   *    key2: val2
+   * }
+   */
+  private _fromEntries(array: any[]): any {
+    let map: any = {};
+    array.forEach((item: [any, any]) => {
+      let [ key, value ] = item;
+      map[key] = value;
+    })
+
+    return map;
   }
 };
 
