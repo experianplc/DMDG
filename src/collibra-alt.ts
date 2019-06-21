@@ -1,5 +1,4 @@
 import Connector from "./connector";
-import * as tailored from "tailored";
 //@ts-ignore
 import jsonFile from "edit-json-file";
 import axios from "axios";
@@ -9,23 +8,12 @@ import Promise from "bluebird";
 import path from "path";
 import FormData from "form-data";
 
-const $ = tailored.variable();
-const _ = tailored.wildcard();
 const debug = true;
 
 function log(message: string) {
   if (debug) {
     console.log(message);
   }
-}
-
-interface RelationMap {
-  "EXTERNAL DATABASE": string;
-  "EXTERNAL COLUMN NAME": string;
-  "EXTERNAL TABLE NAME": string;
-  "RULE": string;
-  "DIMENSION"?: string;
-  "DQ METRIC": string;
 }
 
 interface PandoraRule {
@@ -73,218 +61,6 @@ interface PandoraRule {
     "RULE THRESHOLD": string
 }
 
-
-interface RelationAttributeArguments {
-  sourceId: string;
-  targetId: string;
-  typeId: string;
-  startingDate?: number;
-  endingDate?: number;
-  noDeletion?: boolean;
-};
-
-interface RelationGetResponse {
-  total: number;
-  offset: number;
-  limit: number;
-  results: RelationResult[];
-};
-
-interface RelationResult {
-  source: {
-    name: string,
-    id: string,
-    resourceType: string
-  },
-  target: {
-    name: string,
-    id: string,
-    resourceType: string
-  },
-  type: {
-    id: string
-    resourceType: string
-  },
-  startingDate: number,
-  endingDate: number,
-  createdBy: string,
-  createdOn: number,
-  lastModifiedBy: string,
-  lastModifiedOn: number,
-  system: boolean,
-  resourceType: string,
-  id: string
-}
-
-
-interface AssetResult {
-  displayName: string;
-  articulationScore: number;
-  excludedFromAutoHyperlinking: boolean;
-  domain: {
-    name: string;
-    id: string;
-    resourceType: string;
-  },
-  type: {
-    name: string;
-    id: string;
-    resourceType: string;
-  },
-  status: {
-    name: string;
-    id: string;
-    resourceType: string;
-  },
-  avgRating: number;
-  ratingsCount: number;
-  name: string;
-  createdBy: string;
-  createdOn: number;
-  lastModifiedBy: string;
-  lastModifiedOn: number;
-  system: boolean;
-  resourceType: string;
-  id: string;
-}
-
-interface AssetGetResponse {
-  total: number;
-  offset: number
-  limit: number;
-  results: AssetResult[]; 
-}
-
-interface AttributeGetResponse {
-  total: number,
-  offset: number,
-  limit: number;
-  results: AttributeResult[]
-}
-
-interface AttributeResult {
-  type: {
-    name: string,
-    id: string,
-    resourceType: string
-  },
-  asset: {
-    name: string,
-    id: string,
-    resourceType: string
-  },
-  createdBy: string,
-  createdOn: number,
-  lastModifiedBy: string,
-  lastModifiedOn: number,
-  system: boolean,
-  resourceType: string;
-  id: string;
-}
-
-interface CommunityResult {
-  id: string;
-  createdBy: string;
-  createdOn: number;
-  lastModifiedBy: string;
-  lastModifiedOn: number;
-  system: boolean;
-  resourceType: string;
-  name: string;
-  description: string;
-}
-
-interface CommunityGetResponse {
-  total: number;
-  offset: number;
-  limit: number;
-  results: CommunityResult[]
-}
-
-interface DomainGetResponse {
-  total: number;
-  offset: number;
-  limit: number;
-  results: DomainResult[];
-}
-
-interface DomainResult {
-  type: {
-    name: string,
-      id: string,
-      resourceType: string
-  };
-  community: {
-    name: string,
-      id: string,
-      resourceType: string
-  };
-  excludedFromAutoHyperlinking: boolean;
-  description: string;
-  name: string;
-  createdBy: string;
-  createdOn: number;
-  lastModifiedBy: string;
-  lastModifiedOn: number;
-  system: boolean;
-  resourceType: string;
-  id: string;
-}
-
-interface AssetAttributeArguments {
-  assetId: string;
-  typeId: string | string[];
-  value: any;
-}
-
-interface AssetArguments {
-  name: string; 
-  displayName?: string;
-  domainId: string; 
-  typeId: string;
-}
-
-interface DomainArguments {
-  name: string;
-  communityId: string;
-  typeId: string;
-  description?: string;
-}
-
-  // Collibra Mapping
-  // Ideally this entire thing is portable so it can be transfered to another
-  // system in a relatively straight-forward fashion.
-  /*
-   * Should look something like this:
-   *
-   * {
-   *  communityId: ID GOES HERE
-   *  - domain id -: {
-   *    domainId: ID GOES HERE
-   *    - asset id -: {
-   *      assetId: ID GOES HERE
-   *      - attribute id -: {
-   *      },
-   *    }
-   * }
-   */
-
-interface Other {
-  [key: string]: string;
-}
-
-/*
-  interface MetaDataMap {
-    [key: string]: string | { // Community ids
-      [key: string]: string | { // Domain ids
-        [key: string]: string | { // Asset ids
-          [key: string]: string     // Attribute Ids
-        }
-      }
-    }
-  }
-*/
-
 export class CollibraConnector extends Connector {
 
   // File object that contains config
@@ -301,7 +77,6 @@ export class CollibraConnector extends Connector {
 
 
   // Used to make subsequent API requests to the Collibra Data Governance Center API.
-  sessionToken: string;
   cookie: string;
 
   // Custom relation types
@@ -334,8 +109,6 @@ export class CollibraConnector extends Connector {
     } else {
       this.odbcUrl = HTTP_ODBC_URL;
     }
-
-    this.sessionToken = "";
     this.cookie = "";
     this.customRelations = {};
   };
@@ -356,9 +129,10 @@ export class CollibraConnector extends Connector {
    * Get assets from a source. For Collibra this isn't necessary
    */
   retrieveAssets(): PromiseLike<any> {
-    return new Promise((resolve: any, reject: any) => {
-      resolve(null);
-    });
+    // TODO: Move to config
+    const username = "Admin";
+    const password = "Password123";
+    return this.authenticate(username, password);
   };
 
   /*
@@ -377,29 +151,23 @@ export class CollibraConnector extends Connector {
    * would like. This might be checking to see if data quality rules exist
    * before retrieval.
    */
-  preSendDataQualityRules(): PromiseLike<any> {
-    // TODO: Move to config
-    const username = "Admin";
-    const password = "Password123";
-
-    return this.authenticate(username, password).then(() => {
-      return Promise.all([
-        this.getOrCreateRelationTypes({
-          coRole: "is classified by",
-          role: "classifies",
-          sourceTypeId: "00000000-0000-0000-0000-000000031108",
-          targetTypeId: "00000000-0000-0000-0000-000000031107",
-          saveTo: "DimensionToMetric"
-        }),
-        this.getOrCreateRelationTypes({
-          coRole: "executes",
-          role: "executed by",
-          sourceTypeId: "00000000-0000-0000-0000-000000031205", // Data Quality Rule
-          targetTypeId: "00000000-0000-0000-0000-000000031107", // Data Quality Metric
-          saveTo: "RuleToMetric"
-        }),
-      ]);
-    });
+  preSendDataQualityRules(): PromiseLike<any> { 
+    return Promise.all([
+      this.getOrCreateRelationTypes({
+        coRole: "is classified by",
+        role: "classifies",
+        sourceTypeId: "00000000-0000-0000-0000-000000031108",
+        targetTypeId: "00000000-0000-0000-0000-000000031107",
+        saveTo: "DimensionToMetric"
+      }),
+      this.getOrCreateRelationTypes({
+        coRole: "executes",
+        role: "executed by",
+        sourceTypeId: "00000000-0000-0000-0000-000000031205", // Data Quality Rule
+        targetTypeId: "00000000-0000-0000-0000-000000031107", // Data Quality Metric
+        saveTo: "RuleToMetric"
+      }),
+    ]);
   };
 
   /*
@@ -818,7 +586,6 @@ export class CollibraConnector extends Connector {
         const data = response.data;
         if (data) {
           log("Sign in successful.");
-          this.sessionToken = data["csrfToken"];
           this.cookie = response.headers["set-cookie"].join(" ");
           resolve(data);
         }
