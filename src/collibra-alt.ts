@@ -61,6 +61,30 @@ interface PandoraRule {
     "RULE THRESHOLD": string
 }
 
+interface PandoraProfile {
+  "ROW COUNT": string;
+  "BLANK COUNT": string;
+  "UNIQUE COUNT": string;
+  "DOMINANT DATATYPE": string;
+  "NATIVE TYPE": string;
+  "STANDARD DEVIATION OF VALUES": string;
+  "MOST COMMON VALUE": string;
+  "MINIMUM": string;
+  "ALPHANUMERIC MIN LENGTH": string;
+  "AVERAGE": string;
+  "MAXIMUM": string;
+  "ALPHANUMERIC MAX LENGTH": string;
+  "KEY CHECK": string;
+  "DOCUMENTED NULLABLE": string;
+  "POSITION": string;
+  "NAME": string;
+  "EXTERNAL NAME": string; // Equivalent to External Column Name in PandoraRule
+  "EXTERNAL DATABASE": string;
+  "EXTERNAL SCHEMA": string;
+  "EXTERNAL SERVER": string;
+  "TABLE EXTERNAL NAME": string; // Equivalent to External Table Name
+}
+
 export class CollibraConnector extends Connector {
 
   // File object that contains config
@@ -560,10 +584,214 @@ export class CollibraConnector extends Connector {
   }
 
   sendDataQualityProfiles(): PromiseLike<any> {
-    return new Promise((resolve: any, reject: any) => {
-      resolve(null);
-    });
-  }
+    return this.preSendDataQualityProfiles().then(() => {
+      // TODO: Move to environment variables or configuration file
+      const communityName = "javascript community";
+      const communityDescription = "community description";
+
+      // Create community if non existent
+      this.importApi([{
+        "resourceType": "Community",
+        "identifier": {
+          "name": communityName
+        },
+        "description": communityDescription
+      }]).then(() => {
+        log("Querying rules...");
+        return axios.request({
+          url: `${this.odbcUrl}/query`,
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          data: {
+            sql: `SELECT * FROM \"PROFILES\"`
+          }
+        })
+      }).then((response: any) => {
+        const rules: PandoraProfile[] = response.data;
+
+        // Configuration
+        const dataAssetDomainDescription = "Assets from database"; 
+        const dataAssetTypeName = "Data Asset Domain"; 
+        // Create Data Asset Domain
+        log("Creating or updating asset domain...");
+        
+        rules.forEach((rule: PandoraProfile) => {
+          this.importApi([{
+            "resourceType": "Domain",
+            "identifier": {
+              "name": rule["EXTERNAL SERVER"],
+              "community": {
+                "name": communityName
+              }
+            },
+            "type": {
+              "name": dataAssetTypeName
+            },
+            "description": dataAssetDomainDescription
+          }]).then(() => {
+            return this.importApi([{
+              "resourceType": "Asset",
+              "identifier": {
+                "name": rule["EXTERNAL DATABASE"],
+                "domain": {
+                  "name": rule["EXTERNAL SERVER"],
+                  "community": {
+                    "name": communityName
+                  }
+                }
+              },
+              "domain": {
+                "name": rule["EXTERNAL SERVER"]
+              },
+              "name": rule["EXTERNAL DATABASE"],
+              "displayName": rule["EXTERNAL DATABASE"],
+              "type": {
+                "name": "Database"
+              }
+            }])
+          }).then(() => {
+            let attributes: any = {};
+            attributes["Row Count"] = [{
+              value: Number(rule["ROW COUNT"])
+            }];
+
+            attributes["Empty Values Count"] = [{
+              value: Number(rule["BLANK COUNT"])
+            }];
+
+            attributes["Number of distinct values"] = [{
+              value: Number(rule["UNIQUE COUNT"])
+            }];
+
+            const pandoraToCollibraDataType: any = {
+              "Alphanumeric": "Text",
+              "Integer": "Number",
+              "Decimal": "Decimal",
+              "Date": "DateTime"
+            };
+
+            attributes["Data Type"] = [{
+              value: pandoraToCollibraDataType[rule["DOMINANT DATATYPE"]]
+            }];
+
+            attributes["Technical Data Type"] = [{
+              value: rule["NATIVE TYPE"]
+            }];
+
+            attributes["Standard Deviation"] = [{
+              value: rule["STANDARD DEVIATION OF VALUES"]
+            }];
+
+            attributes["Mode"] = [{
+              value: rule["MOST COMMON VALUE"]
+            }];
+
+            attributes["Minimum Value"] = [{
+              value: rule["MINIMUM"]
+            }];
+
+            attributes["Minimum Text Length"] = [{
+              value: rule["ALPHANUMERIC MIN LENGTH"]
+            }];
+
+            attributes["Mean"] = [{
+              value: rule["AVERAGE"]
+            }];
+
+            attributes["Maximum Value"] = [{
+              value: rule["MAXIMUM"]
+            }];
+
+            attributes["Maximum Text Length"] = [{
+              value: rule["ALPHANUMERIC MAX LENGTH"]
+            }];
+
+            attributes["Is Primary Key"] = [{
+              value: rule["KEY CHECK"] === "Key" ? true : false
+            }];
+
+            attributes["Is Nullable"] = [{
+              value: rule["DOCUMENTED NULLABLE"] === "No" ? false : true
+            }];
+
+            attributes["Column Position"] = [{
+              value: rule["POSITION"]
+            }];
+
+            attributes["Original Name"] = [{
+              value: rule["NAME"]
+            }];
+
+            const tableDatabaseRelationTypeId = "00000000-0000-0000-0000-000000007045"; 
+            return this.importApi([
+              {
+                "resourceType": "Asset",
+                "identifier": {
+                  "name": rule["TABLE EXTERNAL NAME"],
+                  "domain": {
+                    "name": rule["EXTERNAL SERVER"],
+                    "community": {
+                      "name": communityName
+                    }
+                  }
+                },
+                "domain": {
+                  "name": rule["EXTERNAL SERVER"]
+                },
+                "name": rule["TABLE EXTERNAL NAME"],
+                "displayName": rule["TABLE EXTERNAL NAME"],
+                "type": {
+                  "name": "Table"
+                },
+                "relations": {
+                  "00000000-0000-0000-0000-000000007045:TARGET": [{
+                    "name": rule["EXTERNAL DATABASE"],
+                    "domain": {
+                      "name": rule["EXTERNAL SERVER"],
+                      "community": {
+                        "name": communityName
+                      }
+                    }
+                  }]
+                },
+              },
+              {
+                "resourceType": "Asset",
+                "identifier": {
+                  "name": rule["EXTERNAL NAME"],
+                  "domain": {
+                    "name": rule["EXTERNAL SERVER"],
+                    "community": {
+                      "name": communityName
+                    }
+                  }
+                },
+                "domain": {
+                  "name": rule["EXTERNAL SERVER"]
+                },
+                "name": rule["EXTERNAL NAME"],
+                "displayName": rule["EXTERNAL NAME"],
+                "type": {
+                  "name": "Column"
+                },
+                "attributes": attributes,
+                "relations": {
+                  "00000000-0000-0000-0000-000000007042:TARGET": [{
+                    "name": rule["TABLE EXTERNAL NAME"],
+                    "domain": {
+                      "name": rule["EXTERNAL SERVER"],
+                      "community": {
+                        "name": communityName
+                      }
+                    }
+                  }]
+                }
+              }
+            ])
+          })
+        })
+      });
+    })  }
 
   postSendDataQualityProfiles(): PromiseLike<any> {
     return new Promise((resolve: any, reject: any) => {
@@ -730,6 +958,6 @@ export class CollibraConnector extends Connector {
 // Send rule data and profile data over.
 const runner = new CollibraConnector();
  runner.retrieveAssets().then(() => {
-  runner.sendDataQualityRules();
+   // runner.sendDataQualityRules();
   runner.sendDataQualityProfiles();
  });
