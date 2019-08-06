@@ -16,6 +16,7 @@
     "edit-json-file": "^1.2.1",
     "immer": "^1.9.3",
     "intern": "^4.3.3",
+    "pkg": "^4.4.0",
     "tailored": "^2.7.5",
     "typescript": "^3.5.1"
   },
