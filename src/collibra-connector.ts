@@ -10,8 +10,18 @@ import FormData from "form-data";
 
 const debug = true;
 
-function log(message: string) {
-  if (debug) {
+// By default everything is considered fatal.
+function log(message: string, level: number = 1) {
+  /* Levels
+   * 0: No logging
+   * 1: FATAL
+   * 2: ERROR
+   * 3: WARNING
+   * 4: INFO
+   * 5: DEBUG
+   */
+  const debugLevel = Number(process.env.COLLIBRA_DEBUG_LEVEL) || 3;
+  if (debug && debugLevel > level) {
     console.log(message);
   }
 }
@@ -122,8 +132,8 @@ export class CollibraConnector extends Connector {
     // const LAST_RUN = this.configuration.get("CollibraConnector.lastRun");
     const LAST_RUN = process.env.COLLIBRA_LAST_RUN;
     if (!LAST_RUN) {
-      log("lastRun not found")
-      log("Defaulting to 1900-01-01");
+      log("lastRun not found", 4)
+      log("Defaulting to 1900-01-01", 4);
       this.lastRun = new Date("1900-01-01");
     } else {
       this.lastRun = new Date(LAST_RUN);
@@ -231,7 +241,7 @@ export class CollibraConnector extends Connector {
         },
         "description": communityDescription
       }]).then(() => {
-        log("Creating or updating domains...");
+        log("Creating or updating domains...", 4);
         const mappedDomains = domains.map((domain) => {
           return {
             "resourceType": "Domain",
@@ -249,7 +259,7 @@ export class CollibraConnector extends Connector {
         });
         return this.importApi(mappedDomains);
       }).then(() => {
-        log("Querying rules...");
+        log("Querying rules...", 4);
         return axios.request({ 
           url: `${this.odbcUrl}/query`,
           method: "POST",
@@ -265,83 +275,27 @@ export class CollibraConnector extends Connector {
         const dataAssetDomainDescription = "Assets from database"; 
         const dataAssetTypeName = "Data Asset Domain"; 
         // Create Data Asset Domain
-        log("Creating or updating asset domain...");
-        
-        rules.forEach((rule: PandoraRule) => {
-          this.importApi([{
-            "resourceType": "Domain",
-            "identifier": {
-              "name": rule["EXTERNAL SERVER"],
-              "community": {
-                "name": communityName
-              }
-            },
-            "type": {
-              "name": dataAssetTypeName
-            },
-            "description": dataAssetDomainDescription
-          }]).then(() => {
-            return this.importApi([{
-              "resourceType": "Asset",
+        log("Creating or updating asset domain...", 4);
+
+        return new Promise((resolve: any) => {
+          rules.forEach((rule: PandoraRule, index: number, array: any) => {
+            this.importApi([{
+              "resourceType": "Domain",
               "identifier": {
-                "name": rule["EXTERNAL DATABASE"],
-                "domain": {
-                  "name": rule["EXTERNAL SERVER"],
-                  "community": {
-                    "name": communityName
-                  }
+                "name": rule["EXTERNAL SERVER"],
+                "community": {
+                  "name": communityName
                 }
               },
-              "domain": {
-                "name": rule["EXTERNAL SERVER"]
-              },
-              "name": rule["EXTERNAL DATABASE"],
-              "displayName": rule["EXTERNAL DATABASE"],
               "type": {
-                "name": "Database"
-              }
-            }])
-          }).then(() => {
-            const tableDatabaseRelationTypeId = "00000000-0000-0000-0000-000000007045"; 
-            return this.importApi([
-              {
-                "resourceType": "Asset",
-                "identifier": {
-                  "name": rule["EXTERNAL TABLE NAME"],
-                  "domain": {
-                    "name": rule["EXTERNAL SERVER"],
-                    "community": {
-                      "name": communityName
-                    }
-                  }
-                },
-                "domain": {
-                  "name": rule["EXTERNAL SERVER"]
-                },
-                "name": rule["EXTERNAL TABLE NAME"],
-                "displayName": rule["EXTERNAL TABLE NAME"],
-                "type": {
-                  "name": "Table"
-                },
-                "relations": {
-                  "00000000-0000-0000-0000-000000007045:TARGET": [{
-                    "name": rule["EXTERNAL DATABASE"],
-                    "domain": {
-                      "name": rule["EXTERNAL SERVER"],
-                      "community": {
-                        "name": communityName
-                      }
-                    }
-                  }]
-                },
-                "status": {
-                  "name": "Candidate"
-                }
+                "name": dataAssetTypeName
               },
-              {
+              "description": dataAssetDomainDescription
+            }]).then(() => {
+              return this.importApi([{
                 "resourceType": "Asset",
                 "identifier": {
-                  "name": rule["EXTERNAL COLUMN NAME"],
+                  "name": rule["EXTERNAL DATABASE"],
                   "domain": {
                     "name": rule["EXTERNAL SERVER"],
                     "community": {
@@ -352,13 +306,18 @@ export class CollibraConnector extends Connector {
                 "domain": {
                   "name": rule["EXTERNAL SERVER"]
                 },
-                "name": rule["EXTERNAL COLUMN NAME"],
-                "displayName": rule["EXTERNAL COLUMN NAME"],
+                "name": rule["EXTERNAL DATABASE"],
+                "displayName": rule["EXTERNAL DATABASE"],
                 "type": {
-                  "name": "Column"
-                },
-                "relations": {
-                  "00000000-0000-0000-0000-000000007042:TARGET": [{
+                  "name": "Database"
+                }
+              }])
+            }).then(() => {
+              const tableDatabaseRelationTypeId = "00000000-0000-0000-0000-000000007045"; 
+              return this.importApi([
+                {
+                  "resourceType": "Asset",
+                  "identifier": {
                     "name": rule["EXTERNAL TABLE NAME"],
                     "domain": {
                       "name": rule["EXTERNAL SERVER"],
@@ -366,116 +325,190 @@ export class CollibraConnector extends Connector {
                         "name": communityName
                       }
                     }
-                  }]
+                  },
+                  "domain": {
+                    "name": rule["EXTERNAL SERVER"]
+                  },
+                  "name": rule["EXTERNAL TABLE NAME"],
+                  "displayName": rule["EXTERNAL TABLE NAME"],
+                  "type": {
+                    "name": "Table"
+                  },
+                  "relations": {
+                    "00000000-0000-0000-0000-000000007045:TARGET": [{
+                      "name": rule["EXTERNAL DATABASE"],
+                      "domain": {
+                        "name": rule["EXTERNAL SERVER"],
+                        "community": {
+                          "name": communityName
+                        }
+                      }
+                    }]
+                  },
+                  "status": {
+                    "name": "Candidate"
+                  }
                 },
-                "status": {
-                  "name": "Candidate"
+                {
+                  "resourceType": "Asset",
+                  "identifier": {
+                    "name": rule["EXTERNAL COLUMN NAME"],
+                    "domain": {
+                      "name": rule["EXTERNAL SERVER"],
+                      "community": {
+                        "name": communityName
+                      }
+                    }
+                  },
+                  "domain": {
+                    "name": rule["EXTERNAL SERVER"]
+                  },
+                  "name": rule["EXTERNAL COLUMN NAME"],
+                  "displayName": rule["EXTERNAL COLUMN NAME"],
+                  "type": {
+                    "name": "Column"
+                  },
+                  "relations": {
+                    "00000000-0000-0000-0000-000000007042:TARGET": [{
+                      "name": rule["EXTERNAL TABLE NAME"],
+                      "domain": {
+                        "name": rule["EXTERNAL SERVER"],
+                        "community": {
+                          "name": communityName
+                        }
+                      }
+                    }]
+                  },
+                  "status": {
+                    "name": "Candidate"
+                  }
                 }
+              ])
+            }).then(() => {
+              let attributes: any = {};
+              const thresholdMatch = rule["PASS RANGE"].match(/(\d+).*/);
+              if (thresholdMatch) {
+                attributes["Threshold"] = [{
+                  value: Number(thresholdMatch[1])
+                }]
               }
-            ])
-          }).then(() => {
-            let attributes: any = {};
-            const thresholdMatch = rule["PASS RANGE"].match(/(\d+).*/);
-            if (thresholdMatch) {
-              attributes["Threshold"] = [{
-                value: Number(thresholdMatch[1])
-              }]
-            }
 
-            const descriptionMatch = rule["DESCRIPTION"].match(/description=([^;]*)/);
-            if (descriptionMatch) {
-              attributes["Description"] = [{
-                value: descriptionMatch[1]
-              }]
-            }
+              const descriptionMatch = rule["DESCRIPTION"].match(/description=([^;]*)/);
+              if (descriptionMatch) {
+                attributes["Description"] = [{
+                  value: descriptionMatch[1]
+                }]
+              }
 
-            const exampleMatch = rule["DESCRIPTION"].match(/example=([^;]*)/)
-            if (exampleMatch) {
-              attributes["Descriptive Example"] = [{
-                value: exampleMatch[1]
-              }]
-            }
+              const exampleMatch = rule["DESCRIPTION"].match(/example=([^;]*)/)
+              if (exampleMatch) {
+                attributes["Descriptive Example"] = [{
+                  value: exampleMatch[1]
+                }]
+              }
 
-            attributes["Loaded Rows"] = [{
-              value: Number(rule["ROWS CONSIDERED"])
-            }];
+              attributes["Loaded Rows"] = [{
+                value: Number(rule["ROWS CONSIDERED"])
+              }];
 
-            attributes["Rows Passed"] = [{
-              value: Number(rule["ROWS PASSED"])
-            }];
+              attributes["Rows Passed"] = [{
+                value: Number(rule["ROWS PASSED"])
+              }];
 
-            attributes["Conformity Score"] = [{
-              value: Number(rule["ROWS PASSED"])
-            }];
+              attributes["Conformity Score"] = [{
+                value: Number(rule["ROWS PASSED"])
+              }];
 
-            attributes["Rows Failed"] = [{
-              value: Number(rule["ROWS FAILED"])
-            }];
+              attributes["Rows Failed"] = [{
+                value: Number(rule["ROWS FAILED"])
+              }];
 
-            attributes["Non Conformity Score"] = [{
-              value: Number(rule["ROWS FAILED"])
-            }];
+              attributes["Non Conformity Score"] = [{
+                value: Number(rule["ROWS FAILED"])
+              }];
 
-            attributes["Result"] = [{
-              value: rule["RESULT"] === "Green" ? true : false
-            }];
+              attributes["Result"] = [{
+                value: rule["RESULT"] === "Green" ? true : false
+              }];
 
-            attributes["Passing Fraction"] = [{
-              value: (Number(rule["ROWS PASSED"]) / Number(rule["ROWS CONSIDERED"])) * 100
-            }];
+              attributes["Passing Fraction"] = [{
+                value: (Number(rule["ROWS PASSED"]) / Number(rule["ROWS CONSIDERED"])) * 100
+              }];
 
-            if (rule["LAST VALIDATED"] && rule["LAST VALIDATED"] !== "None") { 
-              attributes["Last Sync Date"] = [{
-                value: new Date((rule["LAST VALIDATED"] + " UTC").replace(/\d\d:\d\d:\d\d/, "00:00:00")).getTime()
-              }]
-            }
+              if (rule["LAST VALIDATED"] && rule["LAST VALIDATED"] !== "None") { 
+                attributes["Last Sync Date"] = [{
+                  value: new Date((rule["LAST VALIDATED"] + " UTC").replace(/\d\d:\d\d:\d\d/, "00:00:00")).getTime()
+                }]
+              }
 
-            let relations: any = {};
-            const columnMetricTypeId = "00000000-0000-0000-0000-000000007018";
-            relations[`${columnMetricTypeId}:SOURCE`] = [{
-              "name": rule["EXTERNAL COLUMN NAME"],
-              "domain": {
-                "name": rule["EXTERNAL SERVER"], // TODO: Make configurable
-                "community": {
-                  "name": communityName
+              let relations: any = {};
+              const columnMetricTypeId = "00000000-0000-0000-0000-000000007018";
+              relations[`${columnMetricTypeId}:SOURCE`] = [{
+                "name": rule["EXTERNAL COLUMN NAME"],
+                "domain": {
+                  "name": rule["EXTERNAL SERVER"], // TODO: Make configurable
+                  "community": {
+                    "name": communityName
+                  }
                 }
-              }
-            }];
+              }];
 
-            let importArray: any[] = [{
-              "resourceType": "Asset",
-              "identifier": {
-                "name": rule["NAME"],
+              let importArray: any[] = [{
+                "resourceType": "Asset",
+                "identifier": {
+                  "name": rule["NAME"],
+                  "domain": {
+                    "name": "Data Quality Results", // TODO: Make configurable
+                    "community": {
+                      "name": communityName
+                    }
+                  }
+                },
                 "domain": {
                   "name": "Data Quality Results", // TODO: Make configurable
                   "community": {
                     "name": communityName
                   }
-                }
-              },
-              "domain": {
-                "name": "Data Quality Results", // TODO: Make configurable
-                "community": {
-                  "name": communityName
-                }
-              },
-              "name": rule["NAME"],
-              "displayName": rule["NAME"],
-              "type": {
-                "name": "Data Quality Metric" // TODO: Make configurable
-              },
-              "status": {
-                "name": "Candidate"
-              },
-              "attributes": attributes,
-            }];
+                },
+                "name": rule["NAME"],
+                "displayName": rule["NAME"],
+                "type": {
+                  "name": "Data Quality Metric" // TODO: Make configurable
+                },
+                "status": {
+                  "name": "Candidate"
+                },
+                "attributes": attributes,
+              }];
 
-            // Create/update dimensions asset, if specified
-            const dimensionMatch = rule["DESCRIPTION"].match(/dimension=([^;]*)/); 
-            if(dimensionMatch && dimensionMatch.length === 2) {
-              importArray.push({
-                "resourceType": "Asset",
-                "identifier": {
+              // Create/update dimensions asset, if specified
+              const dimensionMatch = rule["DESCRIPTION"].match(/dimension=([^;]*)/); 
+              if(dimensionMatch && dimensionMatch.length === 2) {
+                importArray.push({
+                  "resourceType": "Asset",
+                  "identifier": {
+                    "name": dimensionMatch[1],
+                    "domain": {
+                      "name": "Data Quality Dimensions",
+                      "community": {
+                        "name": "Data Governance Council"
+                      }
+                    }
+                  },
+                  "domain": {
+                    "name": "Data Quality Dimensions",
+                    "community": {
+                      "name": "Data Governance Council"
+                    }
+                  },
+                  "name": dimensionMatch[1],
+                  "displayName": dimensionMatch[1],
+                  "type": {
+                    "name": "Data Quality Dimension"
+                  }
+                })
+
+                relations[`${this.customRelations["DimensionToMetric"]}:SOURCE`] = [{
                   "name": dimensionMatch[1],
                   "domain": {
                     "name": "Data Quality Dimensions",
@@ -483,83 +516,66 @@ export class CollibraConnector extends Connector {
                       "name": "Data Governance Council"
                     }
                   }
-                },
-                "domain": {
-                  "name": "Data Quality Dimensions",
-                  "community": {
-                    "name": "Data Governance Council"
-                  }
-                },
-                "name": dimensionMatch[1],
-                "displayName": dimensionMatch[1],
-                "type": {
-                  "name": "Data Quality Dimension"
-                }
-              })
+                }];
+              }
 
-              relations[`${this.customRelations["DimensionToMetric"]}:SOURCE`] = [{
-                "name": dimensionMatch[1],
-                "domain": {
-                  "name": "Data Quality Dimensions",
-                  "community": {
-                    "name": "Data Governance Council"
+              // Create/update rule asset, if specified
+              const ruleMatch = rule["DESCRIPTION"].match(/rule=([^;]*)/); 
+              if(ruleMatch && ruleMatch.length === 2) {
+                importArray.push({
+                  "resourceType": "Asset",
+                  "identifier": {
+                    "name": ruleMatch[1],
+                    "domain": {
+                      "name": "Data Quality Rules",
+                      "community": {
+                        "name": communityName,
+                      }
+                    }
+                  },
+                  "domain": {
+                    "name": "Data Quality Rules",
+                    "community": {
+                      "name": communityName
+                    }
+                  },
+                  "name": ruleMatch[1],
+                  "displayName": ruleMatch[1],
+                  "type": {
+                    "name": "Data Quality Rule"
                   }
-                }
-              }];
-            }
+                })
 
-            // Create/update rule asset, if specified
-            const ruleMatch = rule["DESCRIPTION"].match(/rule=([^;]*)/); 
-            if(ruleMatch && ruleMatch.length === 2) {
-              importArray.push({
-                "resourceType": "Asset",
-                "identifier": {
+                relations[`${this.customRelations["RuleToMetric"]}:SOURCE`] = [{
                   "name": ruleMatch[1],
                   "domain": {
                     "name": "Data Quality Rules",
                     "community": {
-                      "name": communityName,
+                      "name": communityName
                     }
                   }
-                },
-                "domain": {
-                  "name": "Data Quality Rules",
-                  "community": {
-                    "name": communityName
-                  }
-                },
-                "name": ruleMatch[1],
-                "displayName": ruleMatch[1],
-                "type": {
-                  "name": "Data Quality Rule"
-                }
-              })
+                }];
 
-              relations[`${this.customRelations["RuleToMetric"]}:SOURCE`] = [{
-                "name": ruleMatch[1],
-                "domain": {
-                  "name": "Data Quality Rules",
-                  "community": {
-                    "name": communityName
-                  }
-                }
-              }];
-
-            }
-
-            const tagsMatch = rule["DESCRIPTION"].match(/tags=([^;]*)/); 
-            if(tagsMatch && tagsMatch.length === 2) {
-              importArray[0]["tags"] = tagsMatch[1].split(",");
-            }
-            const statusMatch = rule["DESCRIPTION"].match(/status=([^;]*)/); 
-            if(statusMatch && statusMatch.length === 2) {
-              importArray[0]["status"] = {
-                "name": statusMatch[0]
               }
-            }
 
-            importArray[0]["relations"] = relations;
-            return this.importApi(importArray)
+              const tagsMatch = rule["DESCRIPTION"].match(/tags=([^;]*)/); 
+              if(tagsMatch && tagsMatch.length === 2) {
+                importArray[0]["tags"] = tagsMatch[1].split(",");
+              }
+              const statusMatch = rule["DESCRIPTION"].match(/status=([^;]*)/); 
+              if(statusMatch && statusMatch.length === 2) {
+                importArray[0]["status"] = {
+                  "name": statusMatch[0]
+                }
+              }
+
+              importArray[0]["relations"] = relations;
+              return this.importApi(importArray)
+            })
+
+            if (index == array.length -1 ){
+              resolve("Import complete");
+            }
           })
         })
       });
@@ -592,14 +608,13 @@ export class CollibraConnector extends Connector {
       const communityDescription = "community description";
 
       // Create community if non existent
-      this.importApi([{
+      return this.importApi([{
         "resourceType": "Community",
         "identifier": {
           "name": communityName
         },
         "description": communityDescription
       }]).then(() => {
-        log("Querying rules...");
         return axios.request({
           url: `${this.odbcUrl}/query`,
           method: "POST",
@@ -615,152 +630,27 @@ export class CollibraConnector extends Connector {
         const dataAssetDomainDescription = "Assets from database"; 
         const dataAssetTypeName = "Data Asset Domain"; 
         // Create Data Asset Domain
-        log("Creating or updating asset domain...");
-        
-        rules.forEach((rule: PandoraProfile) => {
-          this.importApi([{
-            "resourceType": "Domain",
-            "identifier": {
-              "name": rule["EXTERNAL SERVER"],
-              "community": {
-                "name": communityName
-              }
-            },
-            "type": {
-              "name": dataAssetTypeName
-            },
-            "description": dataAssetDomainDescription
-          }]).then(() => {
-            return this.importApi([{
-              "resourceType": "Asset",
+        log("Creating or updating asset domain...", 5);
+
+        return new Promise((resolve: any, reject: any) => {
+          rules.forEach((rule: PandoraProfile, index: number, array: any) => {
+            this.importApi([{
+              "resourceType": "Domain",
               "identifier": {
-                "name": rule["EXTERNAL DATABASE"],
-                "domain": {
-                  "name": rule["EXTERNAL SERVER"],
-                  "community": {
-                    "name": communityName
-                  }
+                "name": rule["EXTERNAL SERVER"],
+                "community": {
+                  "name": communityName
                 }
               },
-              "domain": {
-                "name": rule["EXTERNAL SERVER"]
-              },
-              "name": rule["EXTERNAL DATABASE"],
-              "displayName": rule["EXTERNAL DATABASE"],
               "type": {
-                "name": "Database"
-              }
-            }])
-          }).then(() => {
-            let attributes: any = {};
-            attributes["Row Count"] = [{
-              value: Number(rule["ROW COUNT"])
-            }];
-
-            attributes["Empty Values Count"] = [{
-              value: Number(rule["BLANK COUNT"])
-            }];
-
-            attributes["Number of distinct values"] = [{
-              value: Number(rule["UNIQUE COUNT"])
-            }];
-
-            const pandoraToCollibraDataType: any = {
-              "Alphanumeric": "Text",
-              "Integer": "Number",
-              "Decimal": "Decimal",
-              "Date": "DateTime"
-            };
-
-            attributes["Data Type"] = [{
-              value: pandoraToCollibraDataType[rule["DOMINANT DATATYPE"]]
-            }];
-
-            attributes["Technical Data Type"] = [{
-              value: rule["NATIVE TYPE"]
-            }];
-
-            attributes["Standard Deviation"] = [{
-              value: rule["STANDARD DEVIATION OF VALUES"]
-            }];
-
-            attributes["Mode"] = [{
-              value: rule["MOST COMMON VALUE"]
-            }];
-
-            attributes["Minimum Value"] = [{
-              value: rule["MINIMUM"]
-            }];
-
-            attributes["Minimum Text Length"] = [{
-              value: rule["ALPHANUMERIC MIN LENGTH"]
-            }];
-
-            attributes["Mean"] = [{
-              value: rule["AVERAGE"]
-            }];
-
-            attributes["Maximum Value"] = [{
-              value: rule["MAXIMUM"]
-            }];
-
-            attributes["Maximum Text Length"] = [{
-              value: rule["ALPHANUMERIC MAX LENGTH"]
-            }];
-
-            attributes["Is Primary Key"] = [{
-              value: rule["KEY CHECK"] === "Key" ? true : false
-            }];
-
-            attributes["Is Nullable"] = [{
-              value: rule["DOCUMENTED NULLABLE"] === "No" ? false : true
-            }];
-
-            attributes["Column Position"] = [{
-              value: rule["POSITION"]
-            }];
-
-            attributes["Original Name"] = [{
-              value: rule["NAME"]
-            }];
-
-            const tableDatabaseRelationTypeId = "00000000-0000-0000-0000-000000007045"; 
-            return this.importApi([
-              {
-                "resourceType": "Asset",
-                "identifier": {
-                  "name": rule["TABLE EXTERNAL NAME"],
-                  "domain": {
-                    "name": rule["EXTERNAL SERVER"],
-                    "community": {
-                      "name": communityName
-                    }
-                  }
-                },
-                "domain": {
-                  "name": rule["EXTERNAL SERVER"]
-                },
-                "name": rule["TABLE EXTERNAL NAME"],
-                "displayName": rule["TABLE EXTERNAL NAME"],
-                "type": {
-                  "name": "Table"
-                },
-                "relations": {
-                  "00000000-0000-0000-0000-000000007045:TARGET": [{
-                    "name": rule["EXTERNAL DATABASE"],
-                    "domain": {
-                      "name": rule["EXTERNAL SERVER"],
-                      "community": {
-                        "name": communityName
-                      }
-                    }
-                  }]
-                },
+                "name": dataAssetTypeName
               },
-              {
+              "description": dataAssetDomainDescription
+            }]).then(() => {
+              this.importApi([{
                 "resourceType": "Asset",
                 "identifier": {
-                  "name": rule["EXTERNAL NAME"],
+                  "name": rule["EXTERNAL DATABASE"],
                   "domain": {
                     "name": rule["EXTERNAL SERVER"],
                     "community": {
@@ -771,14 +661,90 @@ export class CollibraConnector extends Connector {
                 "domain": {
                   "name": rule["EXTERNAL SERVER"]
                 },
-                "name": rule["EXTERNAL NAME"],
-                "displayName": rule["EXTERNAL NAME"],
+                "name": rule["EXTERNAL DATABASE"],
+                "displayName": rule["EXTERNAL DATABASE"],
                 "type": {
-                  "name": "Column"
-                },
-                "attributes": attributes,
-                "relations": {
-                  "00000000-0000-0000-0000-000000007042:TARGET": [{
+                  "name": "Database"
+                }
+              }])
+            }).then(() => {
+              let attributes: any = {};
+              attributes["Row Count"] = [{
+                value: Number(rule["ROW COUNT"])
+              }];
+
+              attributes["Empty Values Count"] = [{
+                value: Number(rule["BLANK COUNT"])
+              }];
+
+              attributes["Number of distinct values"] = [{
+                value: Number(rule["UNIQUE COUNT"])
+              }];
+
+              const pandoraToCollibraDataType: any = {
+                "Alphanumeric": "Text",
+                "Integer": "Number",
+                "Decimal": "Decimal",
+                "Date": "DateTime"
+              };
+
+              attributes["Data Type"] = [{
+                value: pandoraToCollibraDataType[rule["DOMINANT DATATYPE"]]
+              }];
+
+              attributes["Technical Data Type"] = [{
+                value: rule["NATIVE TYPE"]
+              }];
+
+              attributes["Standard Deviation"] = [{
+                value: rule["STANDARD DEVIATION OF VALUES"]
+              }];
+
+              attributes["Mode"] = [{
+                value: rule["MOST COMMON VALUE"]
+              }];
+
+              attributes["Minimum Value"] = [{
+                value: rule["MINIMUM"]
+              }];
+
+              attributes["Minimum Text Length"] = [{
+                value: rule["ALPHANUMERIC MIN LENGTH"]
+              }];
+
+              attributes["Mean"] = [{
+                value: rule["AVERAGE"]
+              }];
+
+              attributes["Maximum Value"] = [{
+                value: rule["MAXIMUM"]
+              }];
+
+              attributes["Maximum Text Length"] = [{
+                value: rule["ALPHANUMERIC MAX LENGTH"]
+              }];
+
+              attributes["Is Primary Key"] = [{
+                value: rule["KEY CHECK"] === "Key" ? true : false
+              }];
+
+              attributes["Is Nullable"] = [{
+                value: rule["DOCUMENTED NULLABLE"] === "No" ? false : true
+              }];
+
+              attributes["Column Position"] = [{
+                value: rule["POSITION"]
+              }];
+
+              attributes["Original Name"] = [{
+                value: rule["NAME"]
+              }];
+
+              const tableDatabaseRelationTypeId = "00000000-0000-0000-0000-000000007045"; 
+              this.importApi([
+                {
+                  "resourceType": "Asset",
+                  "identifier": {
                     "name": rule["TABLE EXTERNAL NAME"],
                     "domain": {
                       "name": rule["EXTERNAL SERVER"],
@@ -786,14 +752,70 @@ export class CollibraConnector extends Connector {
                         "name": communityName
                       }
                     }
-                  }]
+                  },
+                  "domain": {
+                    "name": rule["EXTERNAL SERVER"]
+                  },
+                  "name": rule["TABLE EXTERNAL NAME"],
+                  "displayName": rule["TABLE EXTERNAL NAME"],
+                  "type": {
+                    "name": "Table"
+                  },
+                  "relations": {
+                    "00000000-0000-0000-0000-000000007045:TARGET": [{
+                      "name": rule["EXTERNAL DATABASE"],
+                      "domain": {
+                        "name": rule["EXTERNAL SERVER"],
+                        "community": {
+                          "name": communityName
+                        }
+                      }
+                    }]
+                  },
+                },
+                {
+                  "resourceType": "Asset",
+                  "identifier": {
+                    "name": rule["EXTERNAL NAME"],
+                    "domain": {
+                      "name": rule["EXTERNAL SERVER"],
+                      "community": {
+                        "name": communityName
+                      }
+                    }
+                  },
+                  "domain": {
+                    "name": rule["EXTERNAL SERVER"]
+                  },
+                  "name": rule["EXTERNAL NAME"],
+                  "displayName": rule["EXTERNAL NAME"],
+                  "type": {
+                    "name": "Column"
+                  },
+                  "attributes": attributes,
+                  "relations": {
+                    "00000000-0000-0000-0000-000000007042:TARGET": [{
+                      "name": rule["TABLE EXTERNAL NAME"],
+                      "domain": {
+                        "name": rule["EXTERNAL SERVER"],
+                        "community": {
+                          "name": communityName
+                        }
+                      }
+                    }]
+                  }
                 }
-              }
-            ])
+              ])
+            })
+
+            if (index == array.length -1 ){
+              resolve("Import complete");
+            }
           })
         })
       });
-    })  }
+    })  
+  }
 
   postSendDataQualityProfiles(): PromiseLike<any> {
     return new Promise((resolve: any, reject: any) => {
@@ -803,7 +825,6 @@ export class CollibraConnector extends Connector {
 
   private authenticate(username: string, password: string): PromiseLike<any> {
     return new Promise((resolve: any, reject: any) => {
-      log("Logging in...");
       axios.request({ 
         url: `${this.url}/rest/2.0/auth/sessions`,
         method: "POST",
@@ -815,12 +836,12 @@ export class CollibraConnector extends Connector {
       }).then((response) => {
         const data = response.data;
         if (data) {
-          log("Sign in successful.");
+          log("Sign in successful.", 4);
           this.cookie = response.headers["set-cookie"].join(" ");
           resolve(data);
         }
       }).catch((error) => {
-        log("Session already found. Deleting...");
+        log("Session already found. Deleting...", 4);
         log(error.code);
         log(error.response.data);
         axios.request({
@@ -828,17 +849,17 @@ export class CollibraConnector extends Connector {
           method: "DELETE",
           headers: { "Content-Type": "application/json" }
         }).then(() => {
-          log("User logged out. Retrying...");
+          log("User logged out. Retrying...", 4);
           resolve(this.authenticate(username, password));
         }).catch((error) => {
-          log(error.response.data);
+          log(error.response.data, 2);
           reject(error);
         })
       });
     })
   }
 
-  private importApi(args: any): PromiseLike<any> {
+  private importApi(args: any): PromiseLike<object> {
     let formData = new FormData();
     let fileData = Buffer.from(JSON.stringify(args));
     formData.append("file", fileData, "file.txt");
@@ -850,7 +871,7 @@ export class CollibraConnector extends Connector {
     let headers = Object.assign(formData.getHeaders(), { "Cookie": this.cookie });
 
     return new Promise((resolve, reject) => {
-      log(`Starting import now with arguments: ${JSON.stringify(args)}`);
+      log(`Starting import now with arguments: ${JSON.stringify(args)}`, 5);
       axios.request({ 
         url: `${this.url}/rest/2.0/import/json-job`,
         method: "POST",
@@ -858,30 +879,33 @@ export class CollibraConnector extends Connector {
         data: formDataBuffer
       }).then((response) => {
         const jobId = response.data.id;
-        log(`Import started. Job Id: ${jobId}`);
-
+        log(`Import started. Job Id: ${jobId}`, 4);
         let cont = setInterval(() => {
-          log("Checking to see if import is complete...");
-          return axios.request({
+          axios.request({
             method: "GET",
             url: `${this.url}/rest/2.0/jobs/${jobId}`,
             headers: { "Content-Type": "application/json", "Cookie": this.cookie },
           }).then(({ data }) => {
             if (data.state === "ERROR") {
-              log(`Import failed.`);
               clearInterval(cont);
+              log(`Import failed.`, 5);
               reject(data);
             }
             else if (data.state === "COMPLETED") {
-              log(`Import successfully completed.`);
               clearInterval(cont);
+              log(`Import successfully completed.`, 5);
               resolve(data);
+            } else {
+              clearInterval(cont);
+              log(`Import completed with warnings.`, 5);
+              resolve({ error: "Something strange happened. Please try again"});
             }
           })
         }, 1000)
       }).catch((err) => {
-        log(`Import not successful.`);
-        log(err.response.data);
+        log(`Import not successful.`, 5);
+        log(err.response.data, 2);
+        reject(err);
       })
     });
   }
@@ -922,7 +946,7 @@ export class CollibraConnector extends Connector {
         const data = response.data;
 
         if (data.total === 0) {
-          log(`No relationType with name '${name}' found. Creating now...`);
+          log(`No relationType with name '${name}' found. Creating now...`, 5);
           axios.request({ 
             url: `${this.url}/rest/2.0/relationTypes`,
             method: "POST",
@@ -935,32 +959,30 @@ export class CollibraConnector extends Connector {
             }
           }).then((response: any) => {
             const relationType = response.data;
-            log(`RelationType with ID ${relationType.id} created successfully`);
+            log(`RelationType with ID ${relationType.id} created successfully`, 5);
             this["customRelations"][saveTo] = relationType.id;
             resolve(this.getOrCreateRelationTypes({coRole, role, sourceTypeId, targetTypeId, saveTo}))
           }).catch((error: any) => {
-            log(`PostAssetError with parameters: ${JSON.stringify(args)}`);
-            log(error.response.data);
+            log(`PostAssetError with parameters: ${JSON.stringify(args)}`, 2);
+            log(error.response.data, 2);
             reject(error);
           })
 
         } else {
           this["customRelations"][saveTo] = data.results[0].id;
-          log(`Id (${data.results[0].id}) for relation type saved. Continuing...`);
+          log(`Id (${data.results[0].id}) for relation type saved. Continuing...`, 5);
           resolve(this.getOrCreateRelationTypes({coRole, role, sourceTypeId, targetTypeId, saveTo}))
         }
       }).catch((error: any) => {
-        log(`RelationTypeError with parameters: ${JSON.stringify(args)}`);
-        log(error.response.data);
+        log(`RelationTypeError with parameters: ${JSON.stringify(args)}`, 2);
+        log(error.response.data, 2);
         reject(error);
       })
     }); 
   }
 };
 
-// Send rule data and profile data over.
 const runner = new CollibraConnector();
- runner.retrieveAssets().then(() => {
-   // runner.sendDataQualityRules();
+runner.retrieveAssets().then(() => {
   runner.sendDataQualityProfiles();
- });
+});
