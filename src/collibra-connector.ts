@@ -7,11 +7,27 @@ import produce from "immer";
 import Promise from "bluebird";
 import path from "path";
 import FormData from "form-data";
+import * as parseArgs from "minimist";
 
 const debug = true;
 
-// By default everything is considered fatal.
-function log(message: string, level: number = 1) {
+/**
+ * Prints and logs a message
+ *
+ * _Example_:
+ * ```typescript
+ *  log("Debug", 5);
+ *  log("Info", 4);
+ *  log("Warning!", 3);
+ *  log("ERROR!!", 2);
+ *  log("FATAL - Closing...", 1);
+ * ```
+ *
+ * @param message - The message to be logged
+ * @param level - The level of the message
+ * @returns void
+ */
+function log(message: string, level: number = 1): void {
   /* Levels
    * 0: No logging
    * 1: FATAL
@@ -27,48 +43,48 @@ function log(message: string, level: number = 1) {
 }
 
 interface PandoraRule {
-    "NAME": string,
-    "SCORE": string,
-    "MEASURE": string,
-    "PASSED MEASURE": string,
-    "FAILED MEASURE": string,
-    "RULE CATEGORY": string,
-    "DESCRIPTION": string,
-    "INCLUDED": string,
-    "FILTER": string,
-    "ROWS PASSED": string,
-    "ROWS FAILED": string,
-    "TABLE": string,
-    "TABLE VERSION": string,
-    "VERSIONS OFFSET": string,
-    "COLUMN": string,
-    "SCHEMA": string,
-    "FUNCTION": string,
-    "VERSION": string,
-    "PARAMETERS": string,
-    "TYPE": string,
-    "ROWS CONSIDERED": string,
-    "ROWS IGNORED": string,
-    "PASSED": string,
-    "FAILED": string,
-    "CONSIDERED": string,
-    "IGNORED": string,
-    "CATEGORY": string,
-    "TABLE CREATED": string,
-    "LAST VALIDATED": string,
-    "CONNECTION STRING": string,
-    "EXTERNAL COLUMN NAME": string,
-    "EXTERNAL DATABASE": string,
-    "EXTERNAL SCHEMA": string,
-    "EXTERNAL SERVER": string,
-    "EXTERNAL TABLE NAME": string,
-    "FAIL RANGE": string,
-    "FAILED SCORE": string,
-    "LATEST TABLE VERSION": string,
-    "PASS RANGE": string,
-    "RESULT": string,
-    "RULE CATEGORY ID": string,
-    "RULE THRESHOLD": string
+    "NAME": string;
+    "SCORE": string;
+    "MEASURE": string;
+    "PASSED MEASURE": string;
+    "FAILED MEASURE": string;
+    "RULE CATEGORY": string;
+    "DESCRIPTION": string;
+    "INCLUDED": string;
+    "FILTER": string;
+    "ROWS PASSED": string;
+    "ROWS FAILED": string;
+    "TABLE": string;
+    "TABLE VERSION": string;
+    "VERSIONS OFFSET": string;
+    "COLUMN": string;
+    "SCHEMA": string;
+    "FUNCTION": string;
+    "VERSION": string;
+    "PARAMETERS": string;
+    "TYPE": string;
+    "ROWS CONSIDERED": string;
+    "ROWS IGNORED": string;
+    "PASSED": string;
+    "FAILED": string;
+    "CONSIDERED": string;
+    "IGNORED": string;
+    "CATEGORY": string;
+    "TABLE CREATED": string;
+    "LAST VALIDATED": string;
+    "CONNECTION STRING": string;
+    "EXTERNAL COLUMN NAME": string;
+    "EXTERNAL DATABASE": string;
+    "EXTERNAL SCHEMA": string;
+    "EXTERNAL SERVER": string;
+    "EXTERNAL TABLE NAME": string;
+    "FAIL RANGE": string;
+    "FAILED SCORE": string;
+    "LATEST TABLE VERSION": string;
+    "PASS RANGE": string;
+    "RESULT": string;
+    "RULE CATEGORY ID": string;
+    "RULE THRESHOLD": string;
 }
 
 interface PandoraProfile {
@@ -95,19 +111,24 @@ interface PandoraProfile {
   "TABLE EXTERNAL NAME": string; // Equivalent to External Table Name
 }
 
+interface ConstructorArgs {
+  /** URL of the ODBC endpoint */
+  odbcUrl?: string;
+}
+
 export class CollibraConnector extends Connector {
 
   // File object that contains config
   configuration: any;
 
-  // Environment location of the collibra environment, e.g. https://experian-dev-54.collibra.com/
+  // Environment location of the collibra environment, e.g. https://your-env-dev.collibra.com/
   url?: string;
 
   // Date of the last run
   lastRun: Date;
 
   // Location to the HTTP ODBC API
-  odbcUrl: string
+  odbcUrl: string | undefined
 
 
   // Used to make subsequent API requests to the Collibra Data Governance Center API.
@@ -116,9 +137,21 @@ export class CollibraConnector extends Connector {
   // Custom relation types
   customRelations: any; 
 
-  constructor() {
+  /**
+   * The name of the community as it will appear in Collibra
+   */
+  communityName: string;
+
+  /**
+   * The description of the community as it will be described with 
+   * the communityName
+   */
+  communityDescription: string;
+
+  constructor(args: ConstructorArgs) {
     super();
 
+    let odbcUrl = this.odbcUrl;
     this.configuration = jsonFile(`${path.resolve(__dirname, "..")}/connector-config.json`);
 
     // const URL = this.configuration.get("CollibraConnector.collibraUrl");
@@ -140,13 +173,30 @@ export class CollibraConnector extends Connector {
     }
 
     const HTTP_ODBC_URL = process.env.HTTP_ODBC_URL;
-    if (!HTTP_ODBC_URL) {
-      throw("HTTP_ODBC_URL not found");
+    if (!HTTP_ODBC_URL && !odbcUrl) {
+      throw("Please set HTTP_ODBC_URL or pass in odbcUrl into the command line.");
+    } else if (odbcUrl){
+      this.odbcUrl = odbcUrl;
     } else {
       this.odbcUrl = HTTP_ODBC_URL;
     }
     this.cookie = "";
     this.customRelations = {};
+
+    const configuredCollibraName = process.env["COLLIBRA_COMMUNITY_NAME"];
+    if (!configuredCollibraName) {
+      log(`You don't have a name set (COLLIBRA_COMMUNITY_NAME) for the community name, defaulting
+          to 'javascript community'`, 3); }
+
+    this.communityName = configuredCollibraName || "javascript community";
+
+    const configuredCollibraDescription = process.env["COLLIBRA_COMMUNITY_DESCRIPTION"];
+    if (!configuredCollibraDescription) {
+      log(`You don't have a description set (COLLIBRA_COMMUNITY_DESCRIPTION) for the community
+          description , defaulting to 'community description'`, 3); }
+
+    this.communityDescription = configuredCollibraDescription || "community description";
+
   };
 
   /*
@@ -166,8 +216,8 @@ export class CollibraConnector extends Connector {
    */
   retrieveAssets(): PromiseLike<any> {
     // TODO: Move to config
-    const username = "Admin";
-    const password = "Password123";
+    const username = process.env["COLLIBRA_ADMIN"] || "Admin";
+    const password = process.env["COLLIBRA_PASSWORD"] || "Password123";
     return this.authenticate(username, password);
   };
 
@@ -212,9 +262,8 @@ export class CollibraConnector extends Connector {
    */
   sendDataQualityRules(): PromiseLike<any>  {
     return this.preSendDataQualityRules().then(() => {
-      // TODO: Move to environment variables or configuration file
-      const communityName = "javascript community";
-      const communityDescription = "community description";
+      const communityName = this.communityName;
+      const communityDescription = this.communityDescription;
 
       const domains = [
         { 
@@ -265,11 +314,11 @@ export class CollibraConnector extends Connector {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           data: {
-            sql: `SELECT * FROM \"RULES\" WHERE \"VERSIONS OFFSET\" = 0`,
+            sql: `SELECT * FROM \"RULES\"`,
           }
         })      
       }).then((response: any) => {
-        const rules: PandoraRule[] = response.data;
+        const rules: PandoraRule[] = this.processRuleData(response.data);
 
         // Configuration
         const dataAssetDomainDescription = "Assets from database"; 
@@ -282,7 +331,7 @@ export class CollibraConnector extends Connector {
             this.importApi([{
               "resourceType": "Domain",
               "identifier": {
-                "name": rule["EXTERNAL SERVER"],
+                "name": this.getAttribute(rule, "EXTERNAL SERVER"),
                 "community": {
                   "name": communityName
                 }
@@ -295,19 +344,19 @@ export class CollibraConnector extends Connector {
               return this.importApi([{
                 "resourceType": "Asset",
                 "identifier": {
-                  "name": rule["EXTERNAL DATABASE"],
+                  "name": this.getAttribute(rule, "EXTERNAL DATABASE"),
                   "domain": {
-                    "name": rule["EXTERNAL SERVER"],
+                    "name": this.getAttribute(rule, "EXTERNAL SERVER"),
                     "community": {
                       "name": communityName
                     }
                   }
                 },
                 "domain": {
-                  "name": rule["EXTERNAL SERVER"]
+                  "name": this.getAttribute(rule, "EXTERNAL SERVER")
                 },
-                "name": rule["EXTERNAL DATABASE"],
-                "displayName": rule["EXTERNAL DATABASE"],
+                "name": this.getAttribute(rule, "EXTERNAL DATABASE"),
+                "displayName": this.getAttribute(rule, "EXTERNAL DATABASE"),
                 "type": {
                   "name": "Database"
                 }
@@ -318,27 +367,27 @@ export class CollibraConnector extends Connector {
                 {
                   "resourceType": "Asset",
                   "identifier": {
-                    "name": rule["EXTERNAL TABLE NAME"],
+                    "name": this.getAttribute(rule, "EXTERNAL TABLE NAME"),
                     "domain": {
-                      "name": rule["EXTERNAL SERVER"],
+                      "name": this.getAttribute(rule, "EXTERNAL SERVER"),
                       "community": {
                         "name": communityName
                       }
                     }
                   },
                   "domain": {
-                    "name": rule["EXTERNAL SERVER"]
+                    "name": this.getAttribute(rule, "EXTERNAL SERVER")
                   },
-                  "name": rule["EXTERNAL TABLE NAME"],
-                  "displayName": rule["EXTERNAL TABLE NAME"],
+                  "name": this.getAttribute(rule, "EXTERNAL TABLE NAME"),
+                  "displayName": this.getAttribute(rule, "EXTERNAL TABLE NAME"),
                   "type": {
                     "name": "Table"
                   },
                   "relations": {
                     "00000000-0000-0000-0000-000000007045:TARGET": [{
-                      "name": rule["EXTERNAL DATABASE"],
+                      "name": this.getAttribute(rule, "EXTERNAL DATABASE"),
                       "domain": {
-                        "name": rule["EXTERNAL SERVER"],
+                        "name": this.getAttribute(rule, "EXTERNAL SERVER"),
                         "community": {
                           "name": communityName
                         }
@@ -352,27 +401,27 @@ export class CollibraConnector extends Connector {
                 {
                   "resourceType": "Asset",
                   "identifier": {
-                    "name": rule["EXTERNAL COLUMN NAME"],
+                    "name": this.getAttribute(rule, "EXTERNAL COLUMN NAME"),
                     "domain": {
-                      "name": rule["EXTERNAL SERVER"],
+                      "name": this.getAttribute(rule, "EXTERNAL SERVER"),
                       "community": {
                         "name": communityName
                       }
                     }
                   },
                   "domain": {
-                    "name": rule["EXTERNAL SERVER"]
+                    "name": this.getAttribute(rule, "EXTERNAL SERVER")
                   },
-                  "name": rule["EXTERNAL COLUMN NAME"],
-                  "displayName": rule["EXTERNAL COLUMN NAME"],
+                  "name": this.getAttribute(rule, "EXTERNAL COLUMN NAME"),
+                  "displayName": this.getAttribute(rule, "EXTERNAL COLUMN NAME"),
                   "type": {
                     "name": "Column"
                   },
                   "relations": {
                     "00000000-0000-0000-0000-000000007042:TARGET": [{
-                      "name": rule["EXTERNAL TABLE NAME"],
+                      "name": this.getAttribute(rule, "EXTERNAL TABLE NAME"),
                       "domain": {
-                        "name": rule["EXTERNAL SERVER"],
+                        "name": this.getAttribute(rule, "EXTERNAL SERVER"),
                         "community": {
                           "name": communityName
                         }
@@ -386,21 +435,21 @@ export class CollibraConnector extends Connector {
               ])
             }).then(() => {
               let attributes: any = {};
-              const thresholdMatch = rule["PASS RANGE"].match(/(\d+).*/);
+              const thresholdMatch = this.getAttribute(rule, "PASS RANGE").match(/(\d+).*/);
               if (thresholdMatch) {
                 attributes["Threshold"] = [{
                   value: Number(thresholdMatch[1])
                 }]
               }
 
-              const descriptionMatch = rule["DESCRIPTION"].match(/description=([^;]*)/);
+              const descriptionMatch = this.getAttribute(rule, "RULE DESCRIPTION");
               if (descriptionMatch) {
                 attributes["Description"] = [{
                   value: descriptionMatch[1]
                 }]
               }
 
-              const exampleMatch = rule["DESCRIPTION"].match(/example=([^;]*)/)
+              const exampleMatch = this.getAttribute(rule, "EXAMPLE");
               if (exampleMatch) {
                 attributes["Descriptive Example"] = [{
                   value: exampleMatch[1]
@@ -408,45 +457,46 @@ export class CollibraConnector extends Connector {
               }
 
               attributes["Loaded Rows"] = [{
-                value: Number(rule["ROWS CONSIDERED"])
+                value: Number(this.getAttribute(rule, "ROWS CONSIDERED"))
               }];
 
               attributes["Rows Passed"] = [{
-                value: Number(rule["ROWS PASSED"])
+                value: Number(this.getAttribute(rule, "ROWS PASSED"))
               }];
 
               attributes["Conformity Score"] = [{
-                value: Number(rule["ROWS PASSED"])
+                value: Number(this.getAttribute(rule, "ROWS PASSED"))
               }];
 
               attributes["Rows Failed"] = [{
-                value: Number(rule["ROWS FAILED"])
+                value: Number(this.getAttribute(rule, "ROWS FAILED"))
               }];
 
               attributes["Non Conformity Score"] = [{
-                value: Number(rule["ROWS FAILED"])
+                value: Number(this.getAttribute(rule, "ROWS FAILED"))
               }];
 
               attributes["Result"] = [{
-                value: rule["RESULT"] === "Green" ? true : false
+                value: this.getAttribute(rule, "RESULT") === "Green" ? true : false
               }];
 
               attributes["Passing Fraction"] = [{
-                value: (Number(rule["ROWS PASSED"]) / Number(rule["ROWS CONSIDERED"])) * 100
+                value: Number(this.getAttribute(rule, "ROWS PASSED")) / Number(this.getAttribute(rule, "ROWS CONSIDERED")) * 100
               }];
 
-              if (rule["LAST VALIDATED"] && rule["LAST VALIDATED"] !== "None") { 
+              const lastValidated = this.getAttribute(rule, "LAST VALIDATED");
+              if (lastValidated && lastValidated !== "None") { 
                 attributes["Last Sync Date"] = [{
-                  value: new Date((rule["LAST VALIDATED"] + " UTC").replace(/\d\d:\d\d:\d\d/, "00:00:00")).getTime()
+                  value: new Date((this.getAttribute(rule, "LAST VALIDATED") + " UTC").replace(/\d\d:\d\d:\d\d/, "00:00:00")).getTime()
                 }]
               }
 
               let relations: any = {};
               const columnMetricTypeId = "00000000-0000-0000-0000-000000007018";
               relations[`${columnMetricTypeId}:SOURCE`] = [{
-                "name": rule["EXTERNAL COLUMN NAME"],
+                "name": this.getAttribute(rule, "EXTERNAL COLUMN NAME"),
                 "domain": {
-                  "name": rule["EXTERNAL SERVER"], // TODO: Make configurable
+                  "name": this.getAttribute(rule, "EXTERNAL SERVER"), // TODO: Make configurable
                   "community": {
                     "name": communityName
                   }
@@ -456,7 +506,7 @@ export class CollibraConnector extends Connector {
               let importArray: any[] = [{
                 "resourceType": "Asset",
                 "identifier": {
-                  "name": rule["NAME"],
+                  "name": this.getAttribute(rule, "NAME"),
                   "domain": {
                     "name": "Data Quality Results", // TODO: Make configurable
                     "community": {
@@ -470,8 +520,8 @@ export class CollibraConnector extends Connector {
                     "name": communityName
                   }
                 },
-                "name": rule["NAME"],
-                "displayName": rule["NAME"],
+                "name": this.getAttribute(rule, "NAME"),
+                "displayName": this.getAttribute(rule, "NAME"),
                 "type": {
                   "name": "Data Quality Metric" // TODO: Make configurable
                 },
@@ -482,7 +532,7 @@ export class CollibraConnector extends Connector {
               }];
 
               // Create/update dimensions asset, if specified
-              const dimensionMatch = rule["DESCRIPTION"].match(/dimension=([^;]*)/); 
+              const dimensionMatch = this.getAttribute(rule, "dimension")
               if(dimensionMatch && dimensionMatch.length === 2) {
                 importArray.push({
                   "resourceType": "Asset",
@@ -520,7 +570,7 @@ export class CollibraConnector extends Connector {
               }
 
               // Create/update rule asset, if specified
-              const ruleMatch = rule["DESCRIPTION"].match(/rule=([^;]*)/); 
+              const ruleMatch = this.getAttribute(rule, "rule");
               if(ruleMatch && ruleMatch.length === 2) {
                 importArray.push({
                   "resourceType": "Asset",
@@ -558,11 +608,11 @@ export class CollibraConnector extends Connector {
 
               }
 
-              const tagsMatch = rule["DESCRIPTION"].match(/tags=([^;]*)/); 
+              const tagsMatch = this.getAttribute(rule, "tags");
               if(tagsMatch && tagsMatch.length === 2) {
                 importArray[0]["tags"] = tagsMatch[1].split(",");
               }
-              const statusMatch = rule["DESCRIPTION"].match(/status=([^;]*)/); 
+              const statusMatch = this.getAttribute(rule, "status");
               if(statusMatch && statusMatch.length === 2) {
                 importArray[0]["status"] = {
                   "name": statusMatch[0]
@@ -603,11 +653,9 @@ export class CollibraConnector extends Connector {
 
   sendDataQualityProfiles(): PromiseLike<any> {
     return this.preSendDataQualityProfiles().then(() => {
-      // TODO: Move to environment variables or configuration file
-      const communityName = "javascript community";
-      const communityDescription = "community description";
+      const communityName: string = this.communityName;
+      const communityDescription: string = this.communityDescription;
 
-      // Create community if non existent
       return this.importApi([{
         "resourceType": "Community",
         "identifier": {
@@ -620,24 +668,24 @@ export class CollibraConnector extends Connector {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           data: {
-            sql: `SELECT * FROM \"PROFILES\"`
+            // TODO: Make the query semi-configurable
+            sql: `SELECT * FROM \"SNAPSHOT_01\"`
           }
         })
       }).then((response: any) => {
-        const rules: PandoraProfile[] = response.data;
+        const profiles: PandoraProfile[] = this.processProfileData(response.data);
 
         // Configuration
         const dataAssetDomainDescription = "Assets from database"; 
         const dataAssetTypeName = "Data Asset Domain"; 
-        // Create Data Asset Domain
         log("Creating or updating asset domain...", 5);
 
         return new Promise((resolve: any, reject: any) => {
-          rules.forEach((rule: PandoraProfile, index: number, array: any) => {
+          profiles.forEach((profile: PandoraProfile, index: number, array: any) => {
             this.importApi([{
               "resourceType": "Domain",
               "identifier": {
-                "name": rule["EXTERNAL SERVER"],
+                "name": this.getAttribute(profile, "EXTERNAL SERVER"),
                 "community": {
                   "name": communityName
                 }
@@ -650,19 +698,19 @@ export class CollibraConnector extends Connector {
               this.importApi([{
                 "resourceType": "Asset",
                 "identifier": {
-                  "name": rule["EXTERNAL DATABASE"],
+                  "name": this.getProfileAttribute(profile, "EXTERNAL DATABASE"),
                   "domain": {
-                    "name": rule["EXTERNAL SERVER"],
+                    "name": this.getProfileAttribute(profile, "EXTERNAL SERVER"),
                     "community": {
                       "name": communityName
                     }
                   }
                 },
                 "domain": {
-                  "name": rule["EXTERNAL SERVER"]
+                  "name": this.getProfileAttribute(profile, "EXTERNAL SERVER")
                 },
-                "name": rule["EXTERNAL DATABASE"],
-                "displayName": rule["EXTERNAL DATABASE"],
+                "name": this.getProfileAttribute(profile, "EXTERNAL DATABASE"),
+                "displayName": this.getProfileAttribute(profile, "EXTERNAL DATABASE"),
                 "type": {
                   "name": "Database"
                 }
@@ -670,15 +718,15 @@ export class CollibraConnector extends Connector {
             }).then(() => {
               let attributes: any = {};
               attributes["Row Count"] = [{
-                value: Number(rule["ROW COUNT"])
+                value: Number(this.getProfileAttribute(profile, "ROW COUNT"))
               }];
 
               attributes["Empty Values Count"] = [{
-                value: Number(rule["BLANK COUNT"])
+                value: Number(this.getProfileAttribute(profile, "BLANK COUNT"))
               }];
 
               attributes["Number of distinct values"] = [{
-                value: Number(rule["UNIQUE COUNT"])
+                value: Number(this.getProfileAttribute(profile, "UNIQUE COUNT"))
               }];
 
               const pandoraToCollibraDataType: any = {
@@ -689,55 +737,55 @@ export class CollibraConnector extends Connector {
               };
 
               attributes["Data Type"] = [{
-                value: pandoraToCollibraDataType[rule["DOMINANT DATATYPE"]]
+                value: pandoraToCollibraDataType[this.getProfileAttribute(profile, "DOMINANT DATATYPE")]
               }];
 
               attributes["Technical Data Type"] = [{
-                value: rule["NATIVE TYPE"]
+                value: this.getProfileAttribute(profile, "NATIVE TYPE")
               }];
 
               attributes["Standard Deviation"] = [{
-                value: rule["STANDARD DEVIATION OF VALUES"]
+                value: this.getProfileAttribute(profile, "STANDARD DEVIATION OF VALUES")
               }];
 
               attributes["Mode"] = [{
-                value: rule["MOST COMMON VALUE"]
+                value: this.getProfileAttribute(profile, "MOST COMMON VALUE")
               }];
 
               attributes["Minimum Value"] = [{
-                value: rule["MINIMUM"]
+                value: this.getProfileAttribute(profile, "MINIMUM")
               }];
 
               attributes["Minimum Text Length"] = [{
-                value: rule["ALPHANUMERIC MIN LENGTH"]
+                value: this.getProfileAttribute(profile, "ALPHANUMERIC MIN LENGTH")
               }];
 
               attributes["Mean"] = [{
-                value: rule["AVERAGE"]
+                value: this.getProfileAttribute(profile, "AVERAGE")
               }];
 
               attributes["Maximum Value"] = [{
-                value: rule["MAXIMUM"]
+                value: this.getProfileAttribute(profile, "MAXIMUM")
               }];
 
               attributes["Maximum Text Length"] = [{
-                value: rule["ALPHANUMERIC MAX LENGTH"]
+                value: this.getProfileAttribute(profile, "ALPHANUMERIC MAX LENGTH")
               }];
 
               attributes["Is Primary Key"] = [{
-                value: rule["KEY CHECK"] === "Key" ? true : false
+                value: this.getProfileAttribute(profile, "KEY CHECK") === "Key" ? true : false
               }];
 
               attributes["Is Nullable"] = [{
-                value: rule["DOCUMENTED NULLABLE"] === "No" ? false : true
+                value: this.getProfileAttribute(profile, "DOCUMENTED NULLABLE") === "No" ? false : true
               }];
 
               attributes["Column Position"] = [{
-                value: rule["POSITION"]
+                value: this.getProfileAttribute(profile, "POSITION")
               }];
 
               attributes["Original Name"] = [{
-                value: rule["NAME"]
+                value: this.getProfileAttribute(profile, "NAME")
               }];
 
               const tableDatabaseRelationTypeId = "00000000-0000-0000-0000-000000007045"; 
@@ -745,27 +793,27 @@ export class CollibraConnector extends Connector {
                 {
                   "resourceType": "Asset",
                   "identifier": {
-                    "name": rule["TABLE EXTERNAL NAME"],
+                    "name": this.getProfileAttribute(profile, "TABLE EXTERNAL NAME"),
                     "domain": {
-                      "name": rule["EXTERNAL SERVER"],
+                      "name": this.getProfileAttribute(profile, "EXTERNAL SERVER"),
                       "community": {
                         "name": communityName
                       }
                     }
                   },
                   "domain": {
-                    "name": rule["EXTERNAL SERVER"]
+                    "name": this.getProfileAttribute(profile, "EXTERNAL SERVER")
                   },
-                  "name": rule["TABLE EXTERNAL NAME"],
-                  "displayName": rule["TABLE EXTERNAL NAME"],
+                  "name": this.getProfileAttribute(profile, "TABLE EXTERNAL NAME"),
+                  "displayName": this.getProfileAttribute(profile, "TABLE EXTERNAL NAME"),
                   "type": {
                     "name": "Table"
                   },
                   "relations": {
                     "00000000-0000-0000-0000-000000007045:TARGET": [{
-                      "name": rule["EXTERNAL DATABASE"],
+                      "name": this.getProfileAttribute(profile, "EXTERNAL DATABASE"),
                       "domain": {
-                        "name": rule["EXTERNAL SERVER"],
+                        "name": this.getProfileAttribute(profile,"EXTERNAL SERVER"),
                         "community": {
                           "name": communityName
                         }
@@ -776,28 +824,28 @@ export class CollibraConnector extends Connector {
                 {
                   "resourceType": "Asset",
                   "identifier": {
-                    "name": rule["EXTERNAL NAME"],
+                    "name": this.getProfileAttribute(profile, "EXTERNAL NAME"),
                     "domain": {
-                      "name": rule["EXTERNAL SERVER"],
+                      "name": this.getProfileAttribute(profile, "EXTERNAL SERVER"),
                       "community": {
                         "name": communityName
                       }
                     }
                   },
                   "domain": {
-                    "name": rule["EXTERNAL SERVER"]
+                    "name": this.getProfileAttribute(profile, "EXTERNAL SERVER")
                   },
-                  "name": rule["EXTERNAL NAME"],
-                  "displayName": rule["EXTERNAL NAME"],
+                  "name": this.getProfileAttribute(profile, "EXTERNAL NAME"),
+                  "displayName": this.getProfileAttribute(profile, "EXTERNAL NAME"),
                   "type": {
                     "name": "Column"
                   },
                   "attributes": attributes,
                   "relations": {
                     "00000000-0000-0000-0000-000000007042:TARGET": [{
-                      "name": rule["TABLE EXTERNAL NAME"],
+                      "name": this.getProfileAttribute(profile, "TABLE EXTERNAL NAME"),
                       "domain": {
-                        "name": rule["EXTERNAL SERVER"],
+                        "name": this.getProfileAttribute(profile, "EXTERNAL SERVER"),
                         "community": {
                           "name": communityName
                         }
@@ -808,7 +856,7 @@ export class CollibraConnector extends Connector {
               ])
             })
 
-            if (index == array.length -1 ){
+            if (index == array.length - 1 ){
               resolve("Import complete");
             }
           })
@@ -821,6 +869,53 @@ export class CollibraConnector extends Connector {
     return new Promise((resolve: any, reject: any) => {
       resolve(null);
     });
+  }
+
+  /**
+   * Profile data between Pandora and Data Studio differ in subtle ways. 
+   * This function standardizes stuff to minimize differences when querying.
+   *
+   * @param responseData Represents the unprocessed data straight from the HTTP-ODBC connector
+   * @returns An array of the transformed objects
+   */
+  processProfileData(responseData: object[]): PandoraProfile[] {
+    return <PandoraProfile[]> responseData.map(this.maximizeKeys);
+  }
+
+  /**
+   * Rule data between Pandora and Data Studio differ in subtle ways. 
+   * This function standardizes stuff to minimize differences when querying.
+   *
+   * @param responseData Represents the unprocessed data straight from the HTTP-ODBC connector
+   * @returns An array of the transformed objects
+   */
+  processRuleData(responseData: object[]): PandoraRule[] {
+    return <PandoraRule[]> responseData.map(this.maximizeKeys);
+  }
+
+
+  /**
+   * Maximize keys of an object
+   *
+   * @example 
+   * ```javascript
+   * maximizeKeys({"maximize": "val"})
+   * { "MAXIMIZE": "val" }
+   * ```
+   *
+   * @param obj an object with keys
+   * @returns an object with all of its keys maximized
+   */
+  maximizeKeys(obj: object): object {
+    let newObj = JSON.parse(JSON.stringify(obj));
+    Object.keys(newObj).forEach((key) => {
+      newObj[key.toUpperCase()] = newObj[key];
+      if (key.toUpperCase() != key) {
+        delete newObj[key];
+      }
+    });
+
+    return newObj;
   }
 
   private authenticate(username: string, password: string): PromiseLike<any> {
@@ -980,9 +1075,31 @@ export class CollibraConnector extends Connector {
       })
     }); 
   }
+
+  // The main purpose of this function is to provide a fall-back for getting attributes when they
+  // don't exist within the specified column name name
+  private getAttribute(rule: any, key: string): string {
+    if (rule[key]) {
+      return rule[key];
+    } else {
+      try {
+        return rule["Rule Name"].match(new RegExp(key + "=([^;]*)"))[1]
+      } catch(e) {
+        return "";
+      }
+    }
+  }
+
+  private getProfileAttribute(profile: any, key: string): string {
+    try {
+      return profile[key];
+    } catch(e) {
+      return "";
+    }
+  }
 };
 
-const runner = new CollibraConnector();
+const runner = new CollibraConnector({});
 runner.retrieveAssets().then(() => {
   runner.sendDataQualityProfiles();
 });
