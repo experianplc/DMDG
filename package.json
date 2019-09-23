@@ -1,6 +1,6 @@
 {
   "name": "aperture-dq-connector",
-  "version": "0.0.1",
+  "version": "1.1.0",
   "description": "A connector that sends Pandora and Aperture Data Studio rules to a governance platform of choice",
   "main": "index.js",
   "scripts": {

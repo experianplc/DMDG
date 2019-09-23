@@ -3,4 +3,6 @@ nunit3.xml
 test.html
 node_modules
 connector-config.json
-collibra-connector*
+collibra-connector.js
+local*
+build
