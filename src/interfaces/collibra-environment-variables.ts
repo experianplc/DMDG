@@ -17,7 +17,10 @@ interface CollibraEnvironmentVariables {
   COLLIBRA_COMMUNITY_NAME?: string;
 
   /**
-   * The URL of the Collibra environment, etc. your-env.collibra.com
+   * The URL of the Collibra environment.
+   *
+   * @example
+   * `your-env.collibra.com`
    */
   COLLIBRA_URL: string;
 
@@ -29,53 +32,64 @@ interface CollibraEnvironmentVariables {
   COLLIBRA_DEBUG_LEVEL?: string;
 
   /**
-   * The username used to sign into the [COLLIBRA_URL] specified.
+   * The username used to sign into the [[COLLIBRA_URL]] specified.
+   * 
+   * @example
+   * `username`
    */
   COLLIBRA_USERNAME: string;
 
   /**
-   * The password used to sign into the [COLLIBRA_URL] specified.
+   * The password used to sign into the [[COLLIBRA_URL]] specified.
+   * 
+   * @example
+   * `onetwothree`
    */
   COLLIBRA_PASSWORD: string;
 
   /**
-   * The name of the Governance Asset Domain in the specified [COLLIBRA_COMMUNITY_NAME].
+   * The name of the Governance Asset Domain in the specified [[COLLIBRA_COMMUNITY_NAME]].
    * @default Data Quality Results
    */
   COLLIBRA_GOVERNANCE_NAME?: string;
 
   /**
-   * The description of the Governance Asset Domain named [COLLIBRA_GOVERNANCE_ASSET_DOMAIN_NAME]
+   * The description of the Governance Asset Domain named [[COLLIBRA_GOVERNANCE_ASSET_DOMAIN_NAME]].
    * @default Experian data quality
    */
   COLLIBRA_GOVERNANCE_DESCRIPTION?: string;
 
   /**
-   * The name of the Rulebook in the specified [COLLIBRA_COMMUNITY_NAME].
+   * The name of the Rulebook in the specified [[COLLIBRA_COMMUNITY_NAME]].
    * @default Data Quality Rules
    */
   COLLIBRA_RULEBOOK_NAME?: string;
 
   /**
-   * The description of the Rulebook named [COLLIBRA_RULEBOOK_NAME]
+   * The description of the Rulebook named [[COLLIBRA_RULEBOOK_NAME]].
    * @default Experian data quality rules
    */
   COLLIBRA_RULEBOOK_DESCRIPTION?: string;
 
   /**
-   * The name of the Data Asset Domain in the specified [COLLIBRA_COMMUNITY_NAME].
+   * The name of the Data Asset Domain in the specified [[COLLIBRA_COMMUNITY_NAME]].
    * @default Data Asset Domain
    */
   COLLIBRA_DATA_ASSET_NAME?: string;
 
   /** 
-   * The description of the Data Asset Domain named [COLLIBRA_DATA_ASSET_NAME]
+   * The description of the Data Asset Domain named [[COLLIBRA_DATA_ASSET_NAME]].
    * @default Assets from database
    */
   COLLIBRA_DATA_ASSET_DESCRIPTION?: string;
 
   /**
    * The URL of the HTTP-ODBC connector for both Data Studio and Pandora
+   *
+   * @example
+   * ```
+   * http://your-domain:odbc-port
+   * ```
    */
   HTTP_ODBC_URL: string;
 
