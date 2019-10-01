@@ -1,0 +1,14 @@
+#!/bin/bash
+
+export COLLIBRA_COMMUNITY_NAME=""
+export COLLIBRA_COMMUNITY_DESCRIPTION=""
+export COLLIBRA_URL=""
+export COLLIBRA_USERNAME=""
+export COLLIBRA_PASSWORD=""
+export HTTP_ODBC_URL=""
+export HTTP_ODBC_RULE_QUERY=""
+export HTTP_ODBC_PROFILE_QUERY=""
+export COLLIBRA_DEBUG_LEVEL="debug"
+export COLLIBRA_MULTI_COMMUNITY=false
+
+./collibra-connector-linux
