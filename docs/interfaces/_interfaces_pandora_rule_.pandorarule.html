@@ -3,7 +3,7 @@
 <head>
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
-	<title>PandoraRule | aperture-dq-connector</title>
+	<title>PandoraRule | generic-dq-connector</title>
 	<meta name="description" content="">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<link rel="stylesheet" href="../assets/css/main.css">
@@ -22,7 +22,7 @@
 						<li class="state loading">Preparing search index...</li>
 						<li class="state failure">The search index is not available</li>
 					</ul>
-					<a href="../index.html" class="title">aperture-dq-connector</a>
+					<a href="../index.html" class="title">generic-dq-connector</a>
 				</div>
 				<div class="table-cell" id="tsd-widgets">
 					<div id="tsd-filter">
@@ -69,6 +69,16 @@
 <div class="container container-main">
 	<div class="row">
 		<div class="col-8 col-content">
+			<section class="tsd-panel tsd-comment">
+				<div class="tsd-comment tsd-typography">
+					<div class="lead">
+						<p>All of the fields shown below, if not included by default in Pandora or Data Studio
+						can be included by including them into <a href="_interfaces_collibra_environment_variables_.collibraenvironmentvariables.html#collibra_attribute_key">CollibraEnvironmentVariables.COLLIBRA_ATTRIBUTE_KEY</a>.</p>
+					</div>
+					<p>So, for example, if the COLLIBRA_ATTRIBUTE_KEY is &quot;Description&quot;, then by including
+					&quot;SCORE=100;&quot; in the Description the score will be parsed from that if not included as a column.</p>
+				</div>
+			</section>
 			<section class="tsd-panel tsd-hierarchy">
 				<h3>Hierarchy</h3>
 				<ul class="tsd-hierarchy">
@@ -89,6 +99,7 @@
 								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-not-exported"><a href="_interfaces_pandora_rule_.pandorarule.html#connection_string" class="tsd-kind-icon">CONNECTION STRING</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-not-exported"><a href="_interfaces_pandora_rule_.pandorarule.html#considered" class="tsd-kind-icon">CONSIDERED</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-not-exported"><a href="_interfaces_pandora_rule_.pandorarule.html#description" class="tsd-kind-icon">DESCRIPTION</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-not-exported"><a href="_interfaces_pandora_rule_.pandorarule.html#example" class="tsd-kind-icon">EXAMPLE</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-not-exported"><a href="_interfaces_pandora_rule_.pandorarule.html#external_column_name" class="tsd-kind-icon">EXTERNAL COLUMN NAME</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-not-exported"><a href="_interfaces_pandora_rule_.pandorarule.html#external_database" class="tsd-kind-icon">EXTERNAL DATABASE</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-not-exported"><a href="_interfaces_pandora_rule_.pandorarule.html#external_schema" class="tsd-kind-icon">EXTERNAL SCHEMA</a></li>
@@ -117,6 +128,7 @@
 								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-not-exported"><a href="_interfaces_pandora_rule_.pandorarule.html#rows_passed" class="tsd-kind-icon">ROWS PASSED</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-not-exported"><a href="_interfaces_pandora_rule_.pandorarule.html#rule_category" class="tsd-kind-icon">RULE CATEGORY</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-not-exported"><a href="_interfaces_pandora_rule_.pandorarule.html#rule_category_id" class="tsd-kind-icon">RULE CATEGORY ID</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-not-exported"><a href="_interfaces_pandora_rule_.pandorarule.html#rule_description" class="tsd-kind-icon">RULE DESCRIPTION</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-not-exported"><a href="_interfaces_pandora_rule_.pandorarule.html#rule_threshold" class="tsd-kind-icon">RULE THRESHOLD</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-not-exported"><a href="_interfaces_pandora_rule_.pandorarule.html#schema" class="tsd-kind-icon">SCHEMA</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-not-exported"><a href="_interfaces_pandora_rule_.pandorarule.html#score" class="tsd-kind-icon">SCORE</a></li>
@@ -139,7 +151,7 @@
 					<div class="tsd-signature tsd-kind-icon">CATEGORY<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in interfaces/pandora-rule.ts:28</li>
+							<li>Defined in interfaces/pandora-rule.ts:49</li>
 						</ul>
 					</aside>
 				</section>
@@ -149,7 +161,7 @@
 					<div class="tsd-signature tsd-kind-icon">COLUMN<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in interfaces/pandora-rule.ts:16</li>
+							<li>Defined in interfaces/pandora-rule.ts:33</li>
 						</ul>
 					</aside>
 				</section>
@@ -159,7 +171,7 @@
 					<div class="tsd-signature tsd-kind-icon">CONNECTION STRING<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in interfaces/pandora-rule.ts:31</li>
+							<li>Defined in interfaces/pandora-rule.ts:55</li>
 						</ul>
 					</aside>
 				</section>
@@ -169,7 +181,7 @@
 					<div class="tsd-signature tsd-kind-icon">CONSIDERED<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in interfaces/pandora-rule.ts:26</li>
+							<li>Defined in interfaces/pandora-rule.ts:47</li>
 						</ul>
 					</aside>
 				</section>
@@ -179,9 +191,26 @@
 					<div class="tsd-signature tsd-kind-icon">DESCRIPTION<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in interfaces/pandora-rule.ts:8</li>
+							<li>Defined in interfaces/pandora-rule.ts:18</li>
 						</ul>
 					</aside>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-not-exported">
+					<a name="example" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagOptional">Optional</span> EXAMPLE</h3>
+					<div class="tsd-signature tsd-kind-icon">EXAMPLE<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">string</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in interfaces/pandora-rule.ts:103</li>
+						</ul>
+					</aside>
+					<div class="tsd-comment tsd-typography">
+						<div class="lead">
+							<p>Not included by default. Must be included in the given
+							<a href="_interfaces_collibra_environment_variables_.collibraenvironmentvariables.html#collibra_attribute_key">CollibraEnvironmentVariables.COLLIBRA_ATTRIBUTE_KEY</a>.</p>
+						</div>
+						<p>Maps to the &quot;Descriptive Example&quot; attribute in the Collibra Data Quality Metric</p>
+					</div>
 				</section>
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-not-exported">
 					<a name="external_column_name" class="tsd-anchor"></a>
@@ -189,9 +218,14 @@
 					<div class="tsd-signature tsd-kind-icon">EXTERNAL COLUMN NAME<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in interfaces/pandora-rule.ts:32</li>
+							<li>Defined in interfaces/pandora-rule.ts:59</li>
 						</ul>
 					</aside>
+					<div class="tsd-comment tsd-typography">
+						<div class="lead">
+							<p>In Collibra a Column Asset is created from this</p>
+						</div>
+					</div>
 				</section>
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-not-exported">
 					<a name="external_database" class="tsd-anchor"></a>
@@ -199,9 +233,14 @@
 					<div class="tsd-signature tsd-kind-icon">EXTERNAL DATABASE<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in interfaces/pandora-rule.ts:33</li>
+							<li>Defined in interfaces/pandora-rule.ts:63</li>
 						</ul>
 					</aside>
+					<div class="tsd-comment tsd-typography">
+						<div class="lead">
+							<p>In Collibra a Database Asset is created from this</p>
+						</div>
+					</div>
 				</section>
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-not-exported">
 					<a name="external_schema" class="tsd-anchor"></a>
@@ -209,7 +248,7 @@
 					<div class="tsd-signature tsd-kind-icon">EXTERNAL SCHEMA<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in interfaces/pandora-rule.ts:34</li>
+							<li>Defined in interfaces/pandora-rule.ts:64</li>
 						</ul>
 					</aside>
 				</section>
@@ -219,9 +258,14 @@
 					<div class="tsd-signature tsd-kind-icon">EXTERNAL SERVER<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in interfaces/pandora-rule.ts:35</li>
+							<li>Defined in interfaces/pandora-rule.ts:68</li>
 						</ul>
 					</aside>
+					<div class="tsd-comment tsd-typography">
+						<div class="lead">
+							<p>In Collibra the Data Asset Domain is created from this</p>
+						</div>
+					</div>
 				</section>
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-not-exported">
 					<a name="external_table_name" class="tsd-anchor"></a>
@@ -229,9 +273,14 @@
 					<div class="tsd-signature tsd-kind-icon">EXTERNAL TABLE NAME<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in interfaces/pandora-rule.ts:36</li>
+							<li>Defined in interfaces/pandora-rule.ts:72</li>
 						</ul>
 					</aside>
+					<div class="tsd-comment tsd-typography">
+						<div class="lead">
+							<p>In Collibra a Table Asset is created from this</p>
+						</div>
+					</div>
 				</section>
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-not-exported">
 					<a name="fail_range" class="tsd-anchor"></a>
@@ -239,7 +288,7 @@
 					<div class="tsd-signature tsd-kind-icon">FAIL RANGE<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in interfaces/pandora-rule.ts:37</li>
+							<li>Defined in interfaces/pandora-rule.ts:73</li>
 						</ul>
 					</aside>
 				</section>
@@ -249,7 +298,7 @@
 					<div class="tsd-signature tsd-kind-icon">FAILED<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in interfaces/pandora-rule.ts:25</li>
+							<li>Defined in interfaces/pandora-rule.ts:46</li>
 						</ul>
 					</aside>
 				</section>
@@ -259,7 +308,7 @@
 					<div class="tsd-signature tsd-kind-icon">FAILED MEASURE<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in interfaces/pandora-rule.ts:6</li>
+							<li>Defined in interfaces/pandora-rule.ts:16</li>
 						</ul>
 					</aside>
 				</section>
@@ -269,7 +318,7 @@
 					<div class="tsd-signature tsd-kind-icon">FAILED SCORE<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in interfaces/pandora-rule.ts:38</li>
+							<li>Defined in interfaces/pandora-rule.ts:74</li>
 						</ul>
 					</aside>
 				</section>
@@ -279,7 +328,7 @@
 					<div class="tsd-signature tsd-kind-icon">FILTER<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in interfaces/pandora-rule.ts:10</li>
+							<li>Defined in interfaces/pandora-rule.ts:20</li>
 						</ul>
 					</aside>
 				</section>
@@ -289,7 +338,7 @@
 					<div class="tsd-signature tsd-kind-icon">FUNCTION<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in interfaces/pandora-rule.ts:18</li>
+							<li>Defined in interfaces/pandora-rule.ts:35</li>
 						</ul>
 					</aside>
 				</section>
@@ -299,7 +348,7 @@
 					<div class="tsd-signature tsd-kind-icon">IGNORED<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in interfaces/pandora-rule.ts:27</li>
+							<li>Defined in interfaces/pandora-rule.ts:48</li>
 						</ul>
 					</aside>
 				</section>
@@ -309,7 +358,7 @@
 					<div class="tsd-signature tsd-kind-icon">INCLUDED<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in interfaces/pandora-rule.ts:9</li>
+							<li>Defined in interfaces/pandora-rule.ts:19</li>
 						</ul>
 					</aside>
 				</section>
@@ -319,9 +368,14 @@
 					<div class="tsd-signature tsd-kind-icon">LAST VALIDATED<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in interfaces/pandora-rule.ts:30</li>
+							<li>Defined in interfaces/pandora-rule.ts:54</li>
 						</ul>
 					</aside>
+					<div class="tsd-comment tsd-typography">
+						<div class="lead">
+							<p>Maps to &quot;Last Sync Date&quot; in the Collibra Data Quality Metric</p>
+						</div>
+					</div>
 				</section>
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-not-exported">
 					<a name="latest_table_version" class="tsd-anchor"></a>
@@ -329,7 +383,7 @@
 					<div class="tsd-signature tsd-kind-icon">LATEST TABLE VERSION<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in interfaces/pandora-rule.ts:39</li>
+							<li>Defined in interfaces/pandora-rule.ts:75</li>
 						</ul>
 					</aside>
 				</section>
@@ -339,7 +393,7 @@
 					<div class="tsd-signature tsd-kind-icon">MEASURE<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in interfaces/pandora-rule.ts:4</li>
+							<li>Defined in interfaces/pandora-rule.ts:14</li>
 						</ul>
 					</aside>
 				</section>
@@ -349,9 +403,14 @@
 					<div class="tsd-signature tsd-kind-icon">NAME<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in interfaces/pandora-rule.ts:2</li>
+							<li>Defined in interfaces/pandora-rule.ts:12</li>
 						</ul>
 					</aside>
+					<div class="tsd-comment tsd-typography">
+						<div class="lead">
+							<p>Maps to &quot;Name&quot;, &quot;Display Name&quot; in the Collibra Data Quality Metric</p>
+						</div>
+					</div>
 				</section>
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-not-exported">
 					<a name="parameters" class="tsd-anchor"></a>
@@ -359,7 +418,7 @@
 					<div class="tsd-signature tsd-kind-icon">PARAMETERS<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in interfaces/pandora-rule.ts:20</li>
+							<li>Defined in interfaces/pandora-rule.ts:37</li>
 						</ul>
 					</aside>
 				</section>
@@ -369,9 +428,14 @@
 					<div class="tsd-signature tsd-kind-icon">PASS RANGE<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in interfaces/pandora-rule.ts:40</li>
+							<li>Defined in interfaces/pandora-rule.ts:80</li>
 						</ul>
 					</aside>
+					<div class="tsd-comment tsd-typography">
+						<div class="lead">
+							<p>Maps to the &quot;Threshold&quot; attribute in the Collibra Data Quality Metric</p>
+						</div>
+					</div>
 				</section>
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-not-exported">
 					<a name="passed" class="tsd-anchor"></a>
@@ -379,7 +443,7 @@
 					<div class="tsd-signature tsd-kind-icon">PASSED<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in interfaces/pandora-rule.ts:24</li>
+							<li>Defined in interfaces/pandora-rule.ts:45</li>
 						</ul>
 					</aside>
 				</section>
@@ -389,7 +453,7 @@
 					<div class="tsd-signature tsd-kind-icon">PASSED MEASURE<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in interfaces/pandora-rule.ts:5</li>
+							<li>Defined in interfaces/pandora-rule.ts:15</li>
 						</ul>
 					</aside>
 				</section>
@@ -399,9 +463,14 @@
 					<div class="tsd-signature tsd-kind-icon">RESULT<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in interfaces/pandora-rule.ts:41</li>
+							<li>Defined in interfaces/pandora-rule.ts:85</li>
 						</ul>
 					</aside>
+					<div class="tsd-comment tsd-typography">
+						<div class="lead">
+							<p>Maps to the &quot;Result&quot; attribute in the Collibra Data Quality Metric</p>
+						</div>
+					</div>
 				</section>
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-not-exported">
 					<a name="rows_considered" class="tsd-anchor"></a>
@@ -409,9 +478,15 @@
 					<div class="tsd-signature tsd-kind-icon">ROWS CONSIDERED<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in interfaces/pandora-rule.ts:22</li>
+							<li>Defined in interfaces/pandora-rule.ts:43</li>
 						</ul>
 					</aside>
+					<div class="tsd-comment tsd-typography">
+						<div class="lead">
+							<p>Maps to &quot;Loaded Rows&quot; in the Collibra Data Quality Metric
+							Maps to &quot;Passing Fraction&quot; when calculated with [[ROWS PASSED&quot;]]</p>
+						</div>
+					</div>
 				</section>
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-not-exported">
 					<a name="rows_failed" class="tsd-anchor"></a>
@@ -419,9 +494,14 @@
 					<div class="tsd-signature tsd-kind-icon">ROWS FAILED<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in interfaces/pandora-rule.ts:12</li>
+							<li>Defined in interfaces/pandora-rule.ts:29</li>
 						</ul>
 					</aside>
+					<div class="tsd-comment tsd-typography">
+						<div class="lead">
+							<p>Maps to &quot;Rows Failed&quot;, &quot;Non Conformity Score&quot; in the Collibra Data Quality Metric&quot;</p>
+						</div>
+					</div>
 				</section>
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-not-exported">
 					<a name="rows_ignored" class="tsd-anchor"></a>
@@ -429,7 +509,7 @@
 					<div class="tsd-signature tsd-kind-icon">ROWS IGNORED<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in interfaces/pandora-rule.ts:23</li>
+							<li>Defined in interfaces/pandora-rule.ts:44</li>
 						</ul>
 					</aside>
 				</section>
@@ -439,9 +519,15 @@
 					<div class="tsd-signature tsd-kind-icon">ROWS PASSED<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in interfaces/pandora-rule.ts:11</li>
+							<li>Defined in interfaces/pandora-rule.ts:25</li>
 						</ul>
 					</aside>
+					<div class="tsd-comment tsd-typography">
+						<div class="lead">
+							<p>Maps to &quot;Rows Passed&quot;, &quot;Conformity Score&quot; in the Collibra Data Quality Metric
+							Maps to &quot;Passing Fraction&quot; when calculated with [[ROWS CONSIDERED&quot;]]</p>
+						</div>
+					</div>
 				</section>
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-not-exported">
 					<a name="rule_category" class="tsd-anchor"></a>
@@ -449,7 +535,7 @@
 					<div class="tsd-signature tsd-kind-icon">RULE CATEGORY<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in interfaces/pandora-rule.ts:7</li>
+							<li>Defined in interfaces/pandora-rule.ts:17</li>
 						</ul>
 					</aside>
 				</section>
@@ -459,9 +545,26 @@
 					<div class="tsd-signature tsd-kind-icon">RULE CATEGORY ID<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in interfaces/pandora-rule.ts:42</li>
+							<li>Defined in interfaces/pandora-rule.ts:86</li>
 						</ul>
 					</aside>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-not-exported">
+					<a name="rule_description" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagOptional">Optional</span> RULE DESCRIPTION</h3>
+					<div class="tsd-signature tsd-kind-icon">RULE DESCRIPTION<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">string</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in interfaces/pandora-rule.ts:95</li>
+						</ul>
+					</aside>
+					<div class="tsd-comment tsd-typography">
+						<div class="lead">
+							<p>Not included by default. Must be included in the given
+							<a href="_interfaces_collibra_environment_variables_.collibraenvironmentvariables.html#collibra_attribute_key">CollibraEnvironmentVariables.COLLIBRA_ATTRIBUTE_KEY</a>.</p>
+						</div>
+						<p>Maps to the &quot;Description&quot; attribute in the Collibra Data Quality Metric</p>
+					</div>
 				</section>
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-not-exported">
 					<a name="rule_threshold" class="tsd-anchor"></a>
@@ -469,7 +572,7 @@
 					<div class="tsd-signature tsd-kind-icon">RULE THRESHOLD<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in interfaces/pandora-rule.ts:43</li>
+							<li>Defined in interfaces/pandora-rule.ts:87</li>
 						</ul>
 					</aside>
 				</section>
@@ -479,7 +582,7 @@
 					<div class="tsd-signature tsd-kind-icon">SCHEMA<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in interfaces/pandora-rule.ts:17</li>
+							<li>Defined in interfaces/pandora-rule.ts:34</li>
 						</ul>
 					</aside>
 				</section>
@@ -489,7 +592,7 @@
 					<div class="tsd-signature tsd-kind-icon">SCORE<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in interfaces/pandora-rule.ts:3</li>
+							<li>Defined in interfaces/pandora-rule.ts:13</li>
 						</ul>
 					</aside>
 				</section>
@@ -499,7 +602,7 @@
 					<div class="tsd-signature tsd-kind-icon">TABLE<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in interfaces/pandora-rule.ts:13</li>
+							<li>Defined in interfaces/pandora-rule.ts:30</li>
 						</ul>
 					</aside>
 				</section>
@@ -509,7 +612,7 @@
 					<div class="tsd-signature tsd-kind-icon">TABLE CREATED<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in interfaces/pandora-rule.ts:29</li>
+							<li>Defined in interfaces/pandora-rule.ts:50</li>
 						</ul>
 					</aside>
 				</section>
@@ -519,7 +622,7 @@
 					<div class="tsd-signature tsd-kind-icon">TABLE VERSION<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in interfaces/pandora-rule.ts:14</li>
+							<li>Defined in interfaces/pandora-rule.ts:31</li>
 						</ul>
 					</aside>
 				</section>
@@ -529,7 +632,7 @@
 					<div class="tsd-signature tsd-kind-icon">TYPE<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in interfaces/pandora-rule.ts:21</li>
+							<li>Defined in interfaces/pandora-rule.ts:38</li>
 						</ul>
 					</aside>
 				</section>
@@ -539,7 +642,7 @@
 					<div class="tsd-signature tsd-kind-icon">VERSION<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in interfaces/pandora-rule.ts:19</li>
+							<li>Defined in interfaces/pandora-rule.ts:36</li>
 						</ul>
 					</aside>
 				</section>
@@ -549,7 +652,7 @@
 					<div class="tsd-signature tsd-kind-icon">VERSIONS OFFSET<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in interfaces/pandora-rule.ts:15</li>
+							<li>Defined in interfaces/pandora-rule.ts:32</li>
 						</ul>
 					</aside>
 				</section>
@@ -605,6 +708,9 @@
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-not-exported">
 								<a href="_interfaces_pandora_rule_.pandorarule.html#description" class="tsd-kind-icon">DESCRIPTION</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-not-exported">
+								<a href="_interfaces_pandora_rule_.pandorarule.html#example" class="tsd-kind-icon">EXAMPLE</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-not-exported">
 								<a href="_interfaces_pandora_rule_.pandorarule.html#external_column_name" class="tsd-kind-icon">EXTERNAL COLUMN NAME</a>
@@ -689,6 +795,9 @@
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-not-exported">
 								<a href="_interfaces_pandora_rule_.pandorarule.html#rule_category_id" class="tsd-kind-icon">RULE CATEGORY ID</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-not-exported">
+								<a href="_interfaces_pandora_rule_.pandorarule.html#rule_description" class="tsd-kind-icon">RULE DESCRIPTION</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-not-exported">
 								<a href="_interfaces_pandora_rule_.pandorarule.html#rule_threshold" class="tsd-kind-icon">RULE THRESHOLD</a>

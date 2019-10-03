@@ -54,7 +54,7 @@ interface CollibraEnvironmentVariables {
   COLLIBRA_GOVERNANCE_NAME?: string;
 
   /**
-   * The description of the Governance Asset Domain named [[COLLIBRA_GOVERNANCE_ASSET_DOMAIN_NAME]].
+   * The description of the Governance Asset Domain named [[COLLIBRA_GOVERNANCE_NAME]].
    * @default Experian data quality
    */
   COLLIBRA_GOVERNANCE_DESCRIPTION?: string;
@@ -84,6 +84,20 @@ interface CollibraEnvironmentVariables {
   COLLIBRA_DATA_ASSET_DESCRIPTION?: string;
 
   /**
+   * This must be set to true if there are preexisting communities in your Collibra instance
+   * @default false
+   */
+  COLLIBRA_MULTI_COMMUNITY?: boolean;
+
+  /**
+   * In Pandora, by default metadata for additional Collibra information is stored in this field
+   * in the Pandora or Data Studio rule. For Pandora this metadata would normally be stored in
+   * the "Description" field and in Data Studio the "Rule Name".
+   * @default Description
+   */
+  COLLIBRA_ATTRIBUTE_KEY?: string;
+
+  /**
    * The URL of the HTTP-ODBC connector for both Data Studio and Pandora
    *
    * @example
@@ -98,7 +112,8 @@ interface CollibraEnvironmentVariables {
    *
    * @example
    * ```sql
-   * 'SELECT * FROM \"RULES\"`
+   * Linux: 'SELECT * FROM \"RULES\"`
+   * Windows: SELECT * FROM RULES
    * ```
    */
   HTTP_ODBC_RULE_QUERY: string;
@@ -108,7 +123,8 @@ interface CollibraEnvironmentVariables {
    *
    * @example
    * ```sql
-   * 'SELECT * FROM \"PROFILES\"`
+   * Linux: 'SELECT * FROM \"PROFILES\"`
+   * Windows: SELECT * FROM PROFILES
    * ```
    */
   HTTP_ODBC_PROFILE_QUERY: string;

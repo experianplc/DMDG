@@ -3,7 +3,7 @@
 <head>
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
-	<title>CollibraEnvironmentVariables | aperture-dq-connector</title>
+	<title>CollibraEnvironmentVariables | generic-dq-connector</title>
 	<meta name="description" content="">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<link rel="stylesheet" href="../assets/css/main.css">
@@ -22,7 +22,7 @@
 						<li class="state loading">Preparing search index...</li>
 						<li class="state failure">The search index is not available</li>
 					</ul>
-					<a href="../index.html" class="title">aperture-dq-connector</a>
+					<a href="../index.html" class="title">generic-dq-connector</a>
 				</div>
 				<div class="table-cell" id="tsd-widgets">
 					<div id="tsd-filter">
@@ -93,6 +93,7 @@
 						<section class="tsd-index-section tsd-is-not-exported">
 							<h3>Properties</h3>
 							<ul class="tsd-index-list">
+								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-not-exported"><a href="_interfaces_collibra_environment_variables_.collibraenvironmentvariables.html#collibra_attribute_key" class="tsd-kind-icon">COLLIBRA_<wbr>ATTRIBUTE_<wbr>KEY</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-not-exported"><a href="_interfaces_collibra_environment_variables_.collibraenvironmentvariables.html#collibra_community_description" class="tsd-kind-icon">COLLIBRA_<wbr>COMMUNITY_<wbr>DESCRIPTION</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-not-exported"><a href="_interfaces_collibra_environment_variables_.collibraenvironmentvariables.html#collibra_community_name" class="tsd-kind-icon">COLLIBRA_<wbr>COMMUNITY_<wbr>NAME</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-not-exported"><a href="_interfaces_collibra_environment_variables_.collibraenvironmentvariables.html#collibra_data_asset_description" class="tsd-kind-icon">COLLIBRA_<wbr>DATA_<wbr>ASSET_<wbr>DESCRIPTION</a></li>
@@ -100,6 +101,7 @@
 								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-not-exported"><a href="_interfaces_collibra_environment_variables_.collibraenvironmentvariables.html#collibra_debug_level" class="tsd-kind-icon">COLLIBRA_<wbr>DEBUG_<wbr>LEVEL</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-not-exported"><a href="_interfaces_collibra_environment_variables_.collibraenvironmentvariables.html#collibra_governance_description" class="tsd-kind-icon">COLLIBRA_<wbr>GOVERNANCE_<wbr>DESCRIPTION</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-not-exported"><a href="_interfaces_collibra_environment_variables_.collibraenvironmentvariables.html#collibra_governance_name" class="tsd-kind-icon">COLLIBRA_<wbr>GOVERNANCE_<wbr>NAME</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-not-exported"><a href="_interfaces_collibra_environment_variables_.collibraenvironmentvariables.html#collibra_multi_community" class="tsd-kind-icon">COLLIBRA_<wbr>MULTI_<wbr>COMMUNITY</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-not-exported"><a href="_interfaces_collibra_environment_variables_.collibraenvironmentvariables.html#collibra_password" class="tsd-kind-icon">COLLIBRA_<wbr>PASSWORD</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-not-exported"><a href="_interfaces_collibra_environment_variables_.collibraenvironmentvariables.html#collibra_rulebook_description" class="tsd-kind-icon">COLLIBRA_<wbr>RULEBOOK_<wbr>DESCRIPTION</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-not-exported"><a href="_interfaces_collibra_environment_variables_.collibraenvironmentvariables.html#collibra_rulebook_name" class="tsd-kind-icon">COLLIBRA_<wbr>RULEBOOK_<wbr>NAME</a></li>
@@ -115,6 +117,28 @@
 			</section>
 			<section class="tsd-panel-group tsd-member-group tsd-is-not-exported">
 				<h2>Properties</h2>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-not-exported">
+					<a name="collibra_attribute_key" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagOptional">Optional</span> COLLIBRA_<wbr>ATTRIBUTE_<wbr>KEY</h3>
+					<div class="tsd-signature tsd-kind-icon">COLLIBRA_<wbr>ATTRIBUTE_<wbr>KEY<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">string</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in interfaces/collibra-environment-variables.ts:98</li>
+						</ul>
+					</aside>
+					<div class="tsd-comment tsd-typography">
+						<div class="lead">
+							<p>In Pandora, by default metadata for additional Collibra information is stored in this field
+								in the Pandora or Data Studio rule. For Pandora this metadata would normally be stored in
+							the &quot;Description&quot; field and in Data Studio the &quot;Rule Name&quot;.</p>
+						</div>
+						<dl class="tsd-comment-tags">
+							<dt>default</dt>
+							<dd><p>Description</p>
+							</dd>
+						</dl>
+					</div>
+				</section>
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-not-exported">
 					<a name="collibra_community_description" class="tsd-anchor"></a>
 					<h3><span class="tsd-flag ts-flagOptional">Optional</span> COLLIBRA_<wbr>COMMUNITY_<wbr>DESCRIPTION</h3>
@@ -227,7 +251,7 @@
 					</aside>
 					<div class="tsd-comment tsd-typography">
 						<div class="lead">
-							<p>The description of the Governance Asset Domain named [[COLLIBRA_GOVERNANCE_ASSET_DOMAIN_NAME]].</p>
+							<p>The description of the Governance Asset Domain named <a href="_interfaces_collibra_environment_variables_.collibraenvironmentvariables.html#collibra_governance_name">COLLIBRA_GOVERNANCE_NAME</a>.</p>
 						</div>
 						<dl class="tsd-comment-tags">
 							<dt>default</dt>
@@ -252,6 +276,26 @@
 						<dl class="tsd-comment-tags">
 							<dt>default</dt>
 							<dd><p>Data Quality Results</p>
+							</dd>
+						</dl>
+					</div>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-not-exported">
+					<a name="collibra_multi_community" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagOptional">Optional</span> COLLIBRA_<wbr>MULTI_<wbr>COMMUNITY</h3>
+					<div class="tsd-signature tsd-kind-icon">COLLIBRA_<wbr>MULTI_<wbr>COMMUNITY<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">false</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">true</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in interfaces/collibra-environment-variables.ts:90</li>
+						</ul>
+					</aside>
+					<div class="tsd-comment tsd-typography">
+						<div class="lead">
+							<p>This must be set to true if there are preexisting communities in your Collibra instance</p>
+						</div>
+						<dl class="tsd-comment-tags">
+							<dt>default</dt>
+							<dd><p>false</p>
 							</dd>
 						</dl>
 					</div>
@@ -362,7 +406,7 @@
 					<div class="tsd-signature tsd-kind-icon">HTTP_<wbr>ODBC_<wbr>PROFILE_<wbr>QUERY<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in interfaces/collibra-environment-variables.ts:114</li>
+							<li>Defined in interfaces/collibra-environment-variables.ts:130</li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -371,7 +415,8 @@
 						</div>
 						<dl class="tsd-comment-tags">
 							<dt>example</dt>
-							<dd><pre><code class="language-sql">'<span class="hljs-keyword">SELECT</span> * <span class="hljs-keyword">FROM</span> \<span class="hljs-string">"PROFILES\"`</span></code></pre>
+							<dd><pre><code class="language-sql">Linux: '<span class="hljs-keyword">SELECT</span> * <span class="hljs-keyword">FROM</span> \<span class="hljs-string">"PROFILES\"`
+Windows: SELECT * FROM PROFILES</span></code></pre>
 							</dd>
 						</dl>
 					</div>
@@ -382,7 +427,7 @@
 					<div class="tsd-signature tsd-kind-icon">HTTP_<wbr>ODBC_<wbr>RULE_<wbr>QUERY<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in interfaces/collibra-environment-variables.ts:104</li>
+							<li>Defined in interfaces/collibra-environment-variables.ts:119</li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -391,7 +436,8 @@
 						</div>
 						<dl class="tsd-comment-tags">
 							<dt>example</dt>
-							<dd><pre><code class="language-sql">'<span class="hljs-keyword">SELECT</span> * <span class="hljs-keyword">FROM</span> \<span class="hljs-string">"RULES\"`</span></code></pre>
+							<dd><pre><code class="language-sql">Linux: '<span class="hljs-keyword">SELECT</span> * <span class="hljs-keyword">FROM</span> \<span class="hljs-string">"RULES\"`
+Windows: SELECT * FROM RULES</span></code></pre>
 							</dd>
 						</dl>
 					</div>
@@ -402,7 +448,7 @@
 					<div class="tsd-signature tsd-kind-icon">HTTP_<wbr>ODBC_<wbr>URL<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in interfaces/collibra-environment-variables.ts:94</li>
+							<li>Defined in interfaces/collibra-environment-variables.ts:108</li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -454,6 +500,9 @@
 						<a href="_interfaces_collibra_environment_variables_.collibraenvironmentvariables.html" class="tsd-kind-icon">Collibra<wbr>Environment<wbr>Variables</a>
 						<ul>
 							<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-not-exported">
+								<a href="_interfaces_collibra_environment_variables_.collibraenvironmentvariables.html#collibra_attribute_key" class="tsd-kind-icon">COLLIBRA_<wbr>ATTRIBUTE_<wbr>KEY</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-not-exported">
 								<a href="_interfaces_collibra_environment_variables_.collibraenvironmentvariables.html#collibra_community_description" class="tsd-kind-icon">COLLIBRA_<wbr>COMMUNITY_<wbr>DESCRIPTION</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-not-exported">
@@ -473,6 +522,9 @@
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-not-exported">
 								<a href="_interfaces_collibra_environment_variables_.collibraenvironmentvariables.html#collibra_governance_name" class="tsd-kind-icon">COLLIBRA_<wbr>GOVERNANCE_<wbr>NAME</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-not-exported">
+								<a href="_interfaces_collibra_environment_variables_.collibraenvironmentvariables.html#collibra_multi_community" class="tsd-kind-icon">COLLIBRA_<wbr>MULTI_<wbr>COMMUNITY</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-not-exported">
 								<a href="_interfaces_collibra_environment_variables_.collibraenvironmentvariables.html#collibra_password" class="tsd-kind-icon">COLLIBRA_<wbr>PASSWORD</a>

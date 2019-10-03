@@ -398,7 +398,6 @@ export class CollibraConnector extends Connector {
 
               let result = this.getAttribute(rule, "RESULT") === "Green" ? true : false;
               if (!result && thresholdMatch) {
-                
                 const passRate = Number(this.getAttribute(rule, "ROWS PASSED")) /
                   Number(this.getAttribute(rule, "ROWS CONSIDERED"))
                 result = passRate > Number(thresholdMatch[1]) ? true : false;
@@ -535,7 +534,6 @@ export class CollibraConnector extends Connector {
                     }
                   }
                 }];
-
               }
 
               const tagsMatch = this.getAttribute(rule, "TAGS");
@@ -758,7 +756,6 @@ export class CollibraConnector extends Connector {
               }
 
               const uniqueCount = Number(this.getProfileAttribute(profile, "UNIQUE COUNT"));
-
               if (uniqueCount) {
                 attributes["Number of distinct values"] = [{
                   value: uniqueCount
