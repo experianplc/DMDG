@@ -225,7 +225,7 @@ export class CollibraConnector extends Connector {
           log("Querying rule data...", 4);
           setEnvVar(this.env, "HTTP_ODBC_RULE_QUERY", true);
         } catch(e) {
-          log(e, "error");
+          log(JSON.stringify(e), "error");
           return new Promise((resolve) => { resolve(null) });
         }
 
@@ -587,7 +587,7 @@ export class CollibraConnector extends Connector {
       try {
         setEnvVar(this.env, "HTTP_ODBC_PROFILE_QUERY", true);
       } catch(e) {
-        log(e, "error");
+        log(JSON.stringify(e), "error");
         return new Promise((resolve) => { resolve(null) });
       }
 
@@ -603,7 +603,7 @@ export class CollibraConnector extends Connector {
           log("Querying profile data...", 4);
           setEnvVar(this.env, "HTTP_ODBC_PROFILE_QUERY", true);
         } catch(e) {
-          log(e, "error");
+          log(JSON.stringify(e), "error");
           return new Promise((resolve) => { resolve(null) });
         }
 
@@ -1009,8 +1009,8 @@ export class CollibraConnector extends Connector {
         }
       }).catch((error) => {
         log("Session already found. Deleting...", 4);
-        log(error.code);
-        log(error.response.data);
+        log(JSON.stringify(error.code));
+        log(JSON.stringify(error.response.data));
         axios.request({
           url: `${this.env.COLLIBRA_URL}/rest/2.0/auth/sessions/current`,
           method: "DELETE",
@@ -1019,8 +1019,8 @@ export class CollibraConnector extends Connector {
           log("User logged out. Retrying...", 4);
           resolve(this.authenticate(username, password));
         }).catch((error) => {
-          log(error.response.data, 2);
-          reject(error);
+          log(JSON.stringify(error.response.data), 2);
+          reject(JSON.stringify(error));
         })
       });
     })
@@ -1058,7 +1058,7 @@ export class CollibraConnector extends Connector {
               clearInterval(cont);
               log(`Import with Job Id: ${data.id} failed.`, 5);
               log(`Values for Id: ${data.id} - ${ids[data.id]}`, 5);
-              reject(data);
+              reject(JSON.stringify(data));
             }
             else if (data.state === "COMPLETED") {
               clearInterval(cont);
@@ -1073,8 +1073,8 @@ export class CollibraConnector extends Connector {
         }, 1000)
       }).catch((err) => {
         log(`Import not successful.`, 5);
-        log(err.response.data, 2);
-        reject(err);
+        log(JSON.stringify(err.response.data), 2);
+        reject(JSON.stringify(err));
       })
     });
   }
@@ -1133,8 +1133,8 @@ export class CollibraConnector extends Connector {
             resolve(this.getOrCreateRelationTypes({coRole, role, sourceTypeId, targetTypeId, saveTo}))
           }).catch((error: any) => {
             log(`PostAssetError with parameters: ${JSON.stringify(args)}`, 2);
-            log(error.response.data, 2);
-            reject(error);
+            log(JSON.stringify(error.response.data), 2);
+            reject(JSON.stringify(error));
           })
 
         } else {
@@ -1144,8 +1144,8 @@ export class CollibraConnector extends Connector {
         }
       }).catch((error: any) => {
         log(`RelationTypeError with parameters: ${JSON.stringify(args)}`, 2);
-        log(error.response.data, 2);
-        reject(error);
+        log(JSON.stringify(error.response.data), 2);
+        reject(JSON.stringify(error));
       })
     }); 
   }
@@ -1187,7 +1187,7 @@ export class CollibraConnector extends Connector {
 
       return profile[key];
     } catch(e) {
-      log(e, "error");
+      log(JSON.stringify(e), "error");
       return "";
     }
   }

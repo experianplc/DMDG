@@ -7,3 +7,4 @@ collibra-connector.js
 local*
 build
 dist
+*/**/collibra.sh
