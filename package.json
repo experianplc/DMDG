@@ -17,7 +17,7 @@
     "bluebird": "^3.5.3",
     "edit-json-file": "^1.2.1",
     "immer": "^1.9.3",
-    "intern": "^4.3.3",
+    "intern": "^4.10.1",
     "pkg": "^4.3.8",
     "tailored": "^2.7.5",
     "typedoc": "^0.15.0",
